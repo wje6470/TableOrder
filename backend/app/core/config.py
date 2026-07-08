@@ -10,5 +10,15 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
+    @property
+    def frontend_origins(self) -> list[str]:
+        """localhost 和 127.0.0.1 對瀏覽器來說是不同的 CORS origin，開發時兩個都允許。"""
+        origins = {self.frontend_origin}
+        if "localhost" in self.frontend_origin:
+            origins.add(self.frontend_origin.replace("localhost", "127.0.0.1"))
+        elif "127.0.0.1" in self.frontend_origin:
+            origins.add(self.frontend_origin.replace("127.0.0.1", "localhost"))
+        return list(origins)
+
 
 settings = Settings()
