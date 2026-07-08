@@ -22,7 +22,10 @@ router = APIRouter(prefix="/orders", tags=["orders"])
 
 async def _get_order_with_items(db: AsyncSession, order_id: uuid.UUID) -> Order:
     order = await db.scalar(
-        select(Order).where(Order.id == order_id).options(selectinload(Order.items))
+        select(Order)
+        .where(Order.id == order_id)
+        .options(selectinload(Order.items))
+        .execution_options(populate_existing=True)
     )
     if order is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="訂單不存在")
@@ -51,9 +54,7 @@ async def open_order(
     db.add(order)
     table.status = "occupied"
     await db.commit()
-    await db.refresh(order)
-    order.items = []
-    return order
+    return await _get_order_with_items(db, order.id)
 
 
 @router.post("/{order_id}/items", response_model=OrderOut)

@@ -26,7 +26,7 @@ Schema 用 [Supabase CLI migration](./supabase/migrations/) 管理（`supabase/m
    npx supabase link --project-ref <YOUR_PROJECT_REF>
    npx supabase db push
    ```
-4. 到 Project Settings -> Database，複製連線字串（Connection string -> URI），稍後會用在後端 `.env` 的 `DATABASE_URL`（記得把開頭 `postgresql://` 換成 `postgresql+asyncpg://`）。
+4. 到 Project Settings -> Database -> Connection string，選 **Session pooler**（不要用直連的 `db.<ref>.supabase.co`，那個位址只有 IPv6，多數本地網路環境連不上），複製字串填到後端 `.env` 的 `DATABASE_URL`（把開頭 `postgresql://` 換成 `postgresql+asyncpg://`，密碼中的 `@` 等特殊字元要 URL encode）。
 5. 到 Project Settings -> API，複製 `Project URL` 與 `anon public` key，稍後用在前端 `.env`。
 
 之後要修改資料表結構，用 `npx supabase migration new <名稱>` 建新的 migration 檔，再 `npx supabase db push` 套用，不要直接改已經 push 過的舊檔案。
