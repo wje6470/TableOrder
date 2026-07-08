@@ -82,14 +82,13 @@ async def get_order_detail_rows(db: AsyncSession, start_date: date, end_date: da
         select(
             Order.id,
             Order.closed_at,
-            Product.name,
+            OrderItem.product_name,
             OrderItem.quantity,
             OrderItem.unit_price,
             OrderItem.subtotal,
             Order.payment_method,
         )
         .join(OrderItem, OrderItem.order_id == Order.id)
-        .join(Product, Product.id == OrderItem.product_id)
         .where(Order.status == "closed", Order.closed_at >= start, Order.closed_at <= end)
         .order_by(Order.closed_at)
     )

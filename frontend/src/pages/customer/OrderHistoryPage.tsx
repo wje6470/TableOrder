@@ -29,7 +29,7 @@ export default function OrderHistoryPage() {
             <ul className="mt-2 space-y-1 text-sm">
               {order.items.map((item) => (
                 <li key={item.id} className="flex justify-between">
-                  <span>x{item.quantity}</span>
+                  <span>{item.product_name} x{item.quantity}</span>
                   <span>NT$ {item.subtotal}</span>
                 </li>
               ))}

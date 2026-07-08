@@ -52,7 +52,7 @@ export default function OrderBoardPage() {
             <ul className="space-y-1 text-sm">
               {order.items.map((item) => (
                 <li key={item.id} className="flex justify-between">
-                  <span>x{item.quantity}</span>
+                  <span>{item.product_name} x{item.quantity}</span>
                   <span>NT$ {item.subtotal}</span>
                 </li>
               ))}

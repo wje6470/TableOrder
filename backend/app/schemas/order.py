@@ -23,6 +23,7 @@ class OrderItemOut(BaseModel):
 
     id: uuid.UUID
     product_id: uuid.UUID
+    product_name: str
     quantity: int
     unit_price: Decimal
     subtotal: Decimal

@@ -76,7 +76,7 @@ export default function CheckoutPage() {
             <ul className="mb-4 space-y-2 text-sm">
               {selectedOrder.items.map((item) => (
                 <li key={item.id} className="flex justify-between">
-                  <span>x{item.quantity}</span>
+                  <span>{item.product_name} x{item.quantity}</span>
                   <span>NT$ {item.subtotal}</span>
                 </li>
               ))}
