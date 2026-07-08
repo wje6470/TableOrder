@@ -14,9 +14,22 @@
 
 ## 1. 設定 Supabase
 
-1. 到 Supabase 專案的 SQL Editor，貼上並執行 [supabase/schema.sql](./supabase/schema.sql)，會建立所有資料表、索引、Realtime 訂閱與 RLS 規則。
-2. 到 Project Settings -> Database，複製連線字串（Connection string -> URI），稍後會用在後端 `.env` 的 `DATABASE_URL`（記得把開頭 `postgresql://` 換成 `postgresql+asyncpg://`）。
-3. 到 Project Settings -> API，複製 `Project URL` 與 `anon public` key，稍後用在前端 `.env`。
+Schema 用 [Supabase CLI migration](./supabase/migrations/) 管理（`supabase/migrations/20260708000000_initial_schema.sql`），不用手動貼 SQL Editor。這台機器還沒裝 Supabase CLI（沒有支援的 winget 套件），改用 `npx supabase` 免安裝直接執行。
+
+1. 在 [supabase.com](https://supabase.com/) 建立一個新專案，記下 **Project Reference ID**（Project Settings -> General）與**資料庫密碼**（建立專案時設定的那組）。
+2. 登入 CLI（會開瀏覽器授權）：
+   ```
+   npx supabase login
+   ```
+3. 連結到你的雲端專案並套用 migration：
+   ```
+   npx supabase link --project-ref <YOUR_PROJECT_REF>
+   npx supabase db push
+   ```
+4. 到 Project Settings -> Database，複製連線字串（Connection string -> URI），稍後會用在後端 `.env` 的 `DATABASE_URL`（記得把開頭 `postgresql://` 換成 `postgresql+asyncpg://`）。
+5. 到 Project Settings -> API，複製 `Project URL` 與 `anon public` key，稍後用在前端 `.env`。
+
+之後要修改資料表結構，用 `npx supabase migration new <名稱>` 建新的 migration 檔，再 `npx supabase db push` 套用，不要直接改已經 push 過的舊檔案。
 
 ## 2. 啟動後端（FastAPI）
 

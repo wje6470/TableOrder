@@ -1,5 +1,7 @@
--- 點餐系統資料庫 schema
--- 執行方式：在 Supabase Dashboard 的 SQL Editor 貼上執行，或用 supabase CLI migration。
+-- 點餐系統資料庫 schema（初始 migration）
+-- 透過 Supabase CLI 套用：
+--   npx supabase link --project-ref <YOUR_PROJECT_REF>
+--   npx supabase db push
 
 create extension if not exists "pgcrypto";
 
