@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useCallback, useContext, useState, ReactNode } from "react";
 import { api } from "../lib/api";
 import { customerAuth } from "../lib/auth";
 
@@ -30,10 +30,10 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     setIsLoggedIn(true);
   }
 
-  function logout() {
+  const logout = useCallback(() => {
     customerAuth.clear();
     setIsLoggedIn(false);
-  }
+  }, []);
 
   return (
     <CustomerAuthContext.Provider value={{ isLoggedIn, login, register, logout }}>
