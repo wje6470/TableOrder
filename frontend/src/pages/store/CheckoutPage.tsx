@@ -52,28 +52,32 @@ export default function CheckoutPage() {
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div className="lg:col-span-1">
-        <h1 className="mb-4 text-lg font-bold">選擇要結帳的桌次</h1>
+        <h1 className="mb-4 text-lg font-bold text-gray-900 dark:text-gray-100">選擇要結帳的桌次</h1>
         <div className="space-y-2">
           {orders.map((order) => (
             <button
               key={order.id}
               onClick={() => setSelectedId(order.id)}
-              className={`w-full rounded-lg border p-3 text-left ${
-                selectedId === order.id ? "border-gray-900 bg-gray-100" : "border-gray-200 bg-white"
+              className={`w-full rounded-lg border p-3 text-left text-gray-900 dark:text-gray-100 ${
+                selectedId === order.id
+                  ? "border-gray-900 bg-gray-100 dark:border-gray-500 dark:bg-gray-700"
+                  : "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
               }`}
             >
               桌號 {tableNumberOf(order.table_id)} · NT$ {order.total_amount}
             </button>
           ))}
-          {orders.length === 0 && <p className="text-gray-400">目前沒有使用中的桌次</p>}
+          {orders.length === 0 && <p className="text-gray-400 dark:text-gray-500">目前沒有使用中的桌次</p>}
         </div>
       </div>
 
       <div className="lg:col-span-2">
         {selectedOrder ? (
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold">桌號 {tableNumberOf(selectedOrder.table_id)} 明細</h2>
-            <ul className="mb-4 space-y-2 text-sm">
+          <div className="rounded-xl bg-white p-6 shadow-sm dark:bg-gray-800">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+              桌號 {tableNumberOf(selectedOrder.table_id)} 明細
+            </h2>
+            <ul className="mb-4 space-y-2 text-sm text-gray-800 dark:text-gray-200">
               {selectedOrder.items.map((item) => (
                 <li key={item.id} className="flex justify-between">
                   <span>{item.product_name} x{item.quantity}</span>
@@ -81,7 +85,7 @@ export default function CheckoutPage() {
                 </li>
               ))}
             </ul>
-            <div className="mb-4 border-t pt-2 text-right text-lg font-bold">
+            <div className="mb-4 border-t pt-2 text-right text-lg font-bold text-gray-900 dark:border-gray-700 dark:text-gray-100">
               合計 NT$ {selectedOrder.total_amount}
             </div>
 
@@ -91,7 +95,9 @@ export default function CheckoutPage() {
                   key={method}
                   onClick={() => setPaymentMethod(method)}
                   className={`rounded-lg border px-4 py-2 text-sm ${
-                    paymentMethod === method ? "border-gray-900 bg-gray-900 text-white" : "border-gray-300"
+                    paymentMethod === method
+                      ? "border-gray-900 bg-gray-900 text-white dark:border-gray-500 dark:bg-gray-700"
+                      : "border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300"
                   }`}
                 >
                   {method === "cash" ? "現金" : "其他"}
@@ -99,18 +105,18 @@ export default function CheckoutPage() {
               ))}
             </div>
 
-            {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
+            {error && <p className="mb-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
             <button
               onClick={confirmCheckout}
               disabled={submitting}
-              className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white disabled:opacity-50"
+              className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
             >
               確認結帳
             </button>
           </div>
         ) : (
-          <p className="text-gray-400">請先從左側選擇桌次</p>
+          <p className="text-gray-400 dark:text-gray-500">請先從左側選擇桌次</p>
         )}
       </div>
     </div>

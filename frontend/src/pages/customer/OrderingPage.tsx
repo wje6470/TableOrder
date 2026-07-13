@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import ThemeToggle from "../../components/ThemeToggle";
 import { useCustomerAuth } from "../../context/CustomerAuthContext";
 import { api, ApiError } from "../../lib/api";
 import { supabase } from "../../lib/supabaseClient";
@@ -99,29 +100,38 @@ export default function OrderingPage() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50">
-      <header className="flex items-center justify-between bg-white px-6 py-4 shadow">
+    <div className="flex h-screen flex-col bg-gray-50 dark:bg-gray-900">
+      <header className="flex items-center justify-between bg-white px-6 py-4 shadow dark:bg-gray-800">
         <div>
-          <h1 className="text-lg font-bold">桌號 {tableNumber}</h1>
-          <p className="text-xs text-gray-500">已累計消費 NT$ {orderedTotal}</p>
+          <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">桌號 {tableNumber}</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400">已累計消費 NT$ {orderedTotal}</p>
         </div>
         <div className="flex gap-3">
-          <Link to="/order/history" className="rounded-lg border border-gray-300 px-4 py-2 text-sm">
+          <Link
+            to="/order/history"
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+          >
             點餐紀錄
           </Link>
-          <button onClick={logout} className="rounded-lg border border-gray-300 px-4 py-2 text-sm">
+          <ThemeToggle className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700" />
+          <button
+            onClick={logout}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+          >
             登出
           </button>
         </div>
       </header>
 
-      {error && <p className="bg-red-50 px-6 py-2 text-sm text-red-600">{error}</p>}
+      {error && (
+        <p className="bg-red-50 px-6 py-2 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-400">{error}</p>
+      )}
 
       <div className="flex flex-1 overflow-hidden">
         <main className="flex-1 overflow-y-auto p-6">
           {categories.map((category) => (
             <section key={category.id} className="mb-8">
-              <h2 className="mb-3 text-lg font-semibold text-gray-800">{category.name}</h2>
+              <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-gray-100">{category.name}</h2>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
                 {products
                   .filter((p) => p.category_id === category.id)
@@ -132,12 +142,12 @@ export default function OrderingPage() {
                       onClick={() => addToCart(product)}
                       className={`overflow-hidden rounded-xl border text-left shadow-sm transition ${
                         product.is_available
-                          ? "border-gray-200 bg-white hover:border-blue-400"
-                          : "border-gray-200 bg-gray-100 opacity-50"
+                          ? "border-gray-200 bg-white hover:border-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-500"
+                          : "border-gray-200 bg-gray-100 opacity-50 dark:border-gray-700 dark:bg-gray-800"
                       }`}
                     >
                       {product.image_url ? (
-                        <div className="flex aspect-[4/3] w-full items-center justify-center bg-gray-50">
+                        <div className="flex aspect-[4/3] w-full items-center justify-center bg-gray-50 dark:bg-gray-900">
                           <img
                             src={product.image_url}
                             alt={product.name}
@@ -145,14 +155,16 @@ export default function OrderingPage() {
                           />
                         </div>
                       ) : (
-                        <div className="flex aspect-[4/3] w-full items-center justify-center bg-gray-100 text-xs text-gray-400">
+                        <div className="flex aspect-[4/3] w-full items-center justify-center bg-gray-100 text-xs text-gray-400 dark:bg-gray-900 dark:text-gray-500">
                           尚無圖片
                         </div>
                       )}
                       <div className="p-4">
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-sm text-gray-500">NT$ {product.price}</p>
-                        {!product.is_available && <p className="mt-1 text-xs text-red-500">已售完</p>}
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{product.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">NT$ {product.price}</p>
+                        {!product.is_available && (
+                          <p className="mt-1 text-xs text-red-500 dark:text-red-400">已售完</p>
+                        )}
                       </div>
                     </button>
                   ))}
@@ -161,22 +173,22 @@ export default function OrderingPage() {
           ))}
         </main>
 
-        <aside className="w-80 border-l bg-white p-4">
-          <h2 className="mb-3 font-semibold">本次購物車</h2>
+        <aside className="w-80 border-l bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <h2 className="mb-3 font-semibold text-gray-900 dark:text-gray-100">本次購物車</h2>
           <div className="space-y-2">
             {cart.map((line) => (
-              <div key={line.product.id} className="flex items-center justify-between text-sm">
+              <div key={line.product.id} className="flex items-center justify-between text-sm text-gray-800 dark:text-gray-200">
                 <span>{line.product.name}</span>
                 <div className="flex items-center gap-2">
                   <button
-                    className="h-6 w-6 rounded bg-gray-200"
+                    className="h-6 w-6 rounded bg-gray-200 dark:bg-gray-700 dark:text-gray-100"
                     onClick={() => changeQuantity(line.product.id, -1)}
                   >
                     -
                   </button>
                   <span>{line.quantity}</span>
                   <button
-                    className="h-6 w-6 rounded bg-gray-200"
+                    className="h-6 w-6 rounded bg-gray-200 dark:bg-gray-700 dark:text-gray-100"
                     onClick={() => changeQuantity(line.product.id, 1)}
                   >
                     +
@@ -184,15 +196,15 @@ export default function OrderingPage() {
                 </div>
               </div>
             ))}
-            {cart.length === 0 && <p className="text-sm text-gray-400">尚未選擇商品</p>}
+            {cart.length === 0 && <p className="text-sm text-gray-400 dark:text-gray-500">尚未選擇商品</p>}
           </div>
 
-          <div className="mt-4 border-t pt-4">
-            <p className="mb-2 text-sm">小計 NT$ {cartTotal}</p>
+          <div className="mt-4 border-t pt-4 dark:border-gray-700">
+            <p className="mb-2 text-sm text-gray-800 dark:text-gray-200">小計 NT$ {cartTotal}</p>
             <button
               disabled={cart.length === 0 || submitting}
               onClick={submitCart}
-              className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white disabled:opacity-50"
+              className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
             >
               送出點餐
             </button>

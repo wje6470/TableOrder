@@ -12,17 +12,20 @@ export default function TableSetup({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-50">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 rounded-xl bg-white p-8 shadow">
-        <h1 className="text-xl font-bold text-gray-800">平板初始設定</h1>
-        <p className="text-sm text-gray-500">此平板僅需設定一次，設定後即代表這張桌子。</p>
+    <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 rounded-xl bg-white p-8 shadow dark:bg-gray-800">
+        <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">平板初始設定</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">此平板僅需設定一次，設定後即代表這張桌子。</p>
         <input
-          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg"
+          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500"
           placeholder="請輸入桌號，例如 A1"
           value={tableNumber}
           onChange={(e) => setTableNumber(e.target.value)}
         />
-        <button type="submit" className="w-full rounded-lg bg-blue-600 py-3 text-lg font-semibold text-white">
+        <button
+          type="submit"
+          className="w-full rounded-lg bg-blue-600 py-3 text-lg font-semibold text-white hover:bg-blue-500"
+        >
           確認設定
         </button>
       </form>

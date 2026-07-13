@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useTheme } from "../../hooks/useTheme";
 import { storeAuth } from "../../lib/auth";
 
 interface RevenuePoint {
@@ -33,6 +34,8 @@ function today() {
 }
 
 export default function ReportsPage() {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [startDate, setStartDate] = useState(firstDayOfMonth());
   const [endDate, setEndDate] = useState(today());
   const [revenue, setRevenue] = useState<RevenuePoint[]>([]);
@@ -82,19 +85,19 @@ export default function ReportsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end gap-4">
         <div>
-          <label className="block text-xs text-gray-500">開始日期</label>
+          <label className="block text-xs text-gray-500 dark:text-gray-400">開始日期</label>
           <input
             type="date"
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-500">結束日期</label>
+          <label className="block text-xs text-gray-500 dark:text-gray-400">結束日期</label>
           <input
             type="date"
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
           />
@@ -104,7 +107,7 @@ export default function ReportsPage() {
             <button
               key={format}
               onClick={() => exportReport(format)}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 dark:border-gray-600 dark:text-gray-300"
             >
               匯出 {format.toUpperCase()}
             </button>
@@ -113,40 +116,46 @@ export default function ReportsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl bg-white p-4 shadow-sm">
-          <p className="text-xs text-gray-500">總營收</p>
-          <p className="text-2xl font-bold">NT$ {avgOrderValue?.total_revenue ?? 0}</p>
+        <div className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-800">
+          <p className="text-xs text-gray-500 dark:text-gray-400">總營收</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">NT$ {avgOrderValue?.total_revenue ?? 0}</p>
         </div>
-        <div className="rounded-xl bg-white p-4 shadow-sm">
-          <p className="text-xs text-gray-500">訂單數</p>
-          <p className="text-2xl font-bold">{avgOrderValue?.order_count ?? 0}</p>
+        <div className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-800">
+          <p className="text-xs text-gray-500 dark:text-gray-400">訂單數</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{avgOrderValue?.order_count ?? 0}</p>
         </div>
-        <div className="rounded-xl bg-white p-4 shadow-sm">
-          <p className="text-xs text-gray-500">客單價</p>
-          <p className="text-2xl font-bold">NT$ {avgOrderValue?.avg_order_value ?? 0}</p>
+        <div className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-800">
+          <p className="text-xs text-gray-500 dark:text-gray-400">客單價</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">NT$ {avgOrderValue?.avg_order_value ?? 0}</p>
         </div>
       </div>
 
-      <div className="rounded-xl bg-white p-4 shadow-sm">
-        <h2 className="mb-3 font-semibold">每日營收</h2>
+      <div className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-800">
+        <h2 className="mb-3 font-semibold text-gray-900 dark:text-gray-100">每日營收</h2>
         <div style={{ width: "100%", height: 280 }}>
           <ResponsiveContainer>
             <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="period" fontSize={12} />
-              <YAxis fontSize={12} />
-              <Tooltip />
-              <Bar dataKey="revenue" fill="#2563eb" radius={[4, 4, 0, 0]} />
+              <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#374151" : "#e5e7eb"} />
+              <XAxis dataKey="period" fontSize={12} stroke={isDark ? "#9ca3af" : "#6b7280"} />
+              <YAxis fontSize={12} stroke={isDark ? "#9ca3af" : "#6b7280"} />
+              <Tooltip
+                contentStyle={
+                  isDark
+                    ? { backgroundColor: "#1f2937", border: "1px solid #374151", color: "#f3f4f6" }
+                    : undefined
+                }
+              />
+              <Bar dataKey="revenue" fill={isDark ? "#3b82f6" : "#2563eb"} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      <div className="rounded-xl bg-white p-4 shadow-sm">
-        <h2 className="mb-3 font-semibold">商品銷售排行</h2>
-        <table className="w-full text-sm">
+      <div className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-800">
+        <h2 className="mb-3 font-semibold text-gray-900 dark:text-gray-100">商品銷售排行</h2>
+        <table className="w-full text-sm text-gray-800 dark:text-gray-200">
           <thead>
-            <tr className="border-b text-left text-gray-500">
+            <tr className="border-b text-left text-gray-500 dark:border-gray-700 dark:text-gray-400">
               <th className="py-2">商品</th>
               <th className="py-2">銷售數量</th>
               <th className="py-2">營收</th>
@@ -154,7 +163,7 @@ export default function ReportsPage() {
           </thead>
           <tbody>
             {topProducts.map((p) => (
-              <tr key={p.product_id} className="border-b last:border-0">
+              <tr key={p.product_id} className="border-b last:border-0 dark:border-gray-700">
                 <td className="py-2">{p.product_name}</td>
                 <td className="py-2">{p.quantity_sold}</td>
                 <td className="py-2">NT$ {p.revenue}</td>
@@ -162,7 +171,9 @@ export default function ReportsPage() {
             ))}
           </tbody>
         </table>
-        {topProducts.length === 0 && <p className="py-4 text-center text-gray-400">此區間尚無銷售資料</p>}
+        {topProducts.length === 0 && (
+          <p className="py-4 text-center text-gray-400 dark:text-gray-500">此區間尚無銷售資料</p>
+        )}
       </div>
     </div>
   );

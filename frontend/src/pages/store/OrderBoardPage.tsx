@@ -41,27 +41,33 @@ export default function OrderBoardPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-lg font-bold">即時訂單看板</h1>
+      <h1 className="mb-4 text-lg font-bold text-gray-900 dark:text-gray-100">即時訂單看板</h1>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {orders.map((order) => (
-          <div key={order.id} className="rounded-xl bg-white p-4 shadow-sm">
+          <div key={order.id} className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-800">
             <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">桌號 {tableNumberOf(order.table_id)}</h2>
-              <span className="text-xs text-gray-400">{new Date(order.opened_at).toLocaleTimeString()}</span>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                桌號 {tableNumberOf(order.table_id)}
+              </h2>
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                {new Date(order.opened_at).toLocaleTimeString()}
+              </span>
             </div>
-            <ul className="space-y-1 text-sm">
+            <ul className="space-y-1 text-sm text-gray-800 dark:text-gray-200">
               {order.items.map((item) => (
                 <li key={item.id} className="flex justify-between">
                   <span>{item.product_name} x{item.quantity}</span>
                   <span>NT$ {item.subtotal}</span>
                 </li>
               ))}
-              {order.items.length === 0 && <li className="text-gray-400">尚未點餐</li>}
+              {order.items.length === 0 && <li className="text-gray-400 dark:text-gray-500">尚未點餐</li>}
             </ul>
-            <div className="mt-2 border-t pt-2 text-right font-semibold">合計 NT$ {order.total_amount}</div>
+            <div className="mt-2 border-t pt-2 text-right font-semibold text-gray-900 dark:border-gray-700 dark:text-gray-100">
+              合計 NT$ {order.total_amount}
+            </div>
           </div>
         ))}
-        {orders.length === 0 && <p className="text-gray-400">目前沒有使用中的桌次</p>}
+        {orders.length === 0 && <p className="text-gray-400 dark:text-gray-500">目前沒有使用中的桌次</p>}
       </div>
     </div>
   );
