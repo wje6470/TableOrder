@@ -1,12 +1,19 @@
-import { FormEvent, useEffect, useState } from "react";
-import { api } from "../../lib/api";
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import { api, ApiError } from "../../lib/api";
 import { Category, Product } from "../../types";
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export default function ProductManagementPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newProduct, setNewProduct] = useState({ name: "", price: "", category_id: "" });
+  const [newProductImage, setNewProductImage] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [uploadingProductId, setUploadingProductId] = useState<string | null>(null);
+  const newImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     void refresh();
@@ -31,21 +38,74 @@ export default function ProductManagementPage() {
     await refresh();
   }
 
+  function validateImageFile(file: File): string | null {
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) return "圖片格式僅支援 JPEG、PNG、WebP";
+    if (file.size > MAX_IMAGE_BYTES) return "圖片大小不可超過 5MB";
+    return null;
+  }
+
+  function onNewProductImageChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    if (file) {
+      const validationError = validateImageFile(file);
+      if (validationError) {
+        setError(validationError);
+        e.target.value = "";
+        setNewProductImage(null);
+        return;
+      }
+    }
+    setError(null);
+    setNewProductImage(file);
+  }
+
   async function addProduct(e: FormEvent) {
     e.preventDefault();
     if (!newProduct.name.trim() || !newProduct.price) return;
-    await api.post(
-      "/products",
-      {
-        name: newProduct.name.trim(),
-        price: Number(newProduct.price),
-        category_id: newProduct.category_id || null,
-        is_available: true,
-      },
-      "store"
-    );
-    setNewProduct({ name: "", price: "", category_id: "" });
-    await refresh();
+    setError(null);
+    try {
+      const created = await api.post<Product>(
+        "/products",
+        {
+          name: newProduct.name.trim(),
+          price: Number(newProduct.price),
+          category_id: newProduct.category_id || null,
+          is_available: true,
+        },
+        "store"
+      );
+      if (newProductImage) {
+        const formData = new FormData();
+        formData.append("file", newProductImage);
+        await api.postForm(`/products/${created.id}/image`, formData, "store");
+      }
+      setNewProduct({ name: "", price: "", category_id: "" });
+      setNewProductImage(null);
+      if (newImageInputRef.current) newImageInputRef.current.value = "";
+      await refresh();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "新增商品失敗，請再試一次");
+    }
+  }
+
+  async function uploadProductImage(productId: string, file: File) {
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setError(null);
+    setUploadingProductId(productId);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      await api.postForm(`/products/${productId}/image`, formData, "store");
+      await refresh();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "圖片上傳失敗，請再試一次");
+    } finally {
+      setUploadingProductId(null);
+    }
   }
 
   async function toggleAvailability(product: Product) {
@@ -85,6 +145,7 @@ export default function ProductManagementPage() {
 
       <section className="lg:col-span-2">
         <h2 className="mb-3 text-lg font-bold">商品管理</h2>
+        {error && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
         <form onSubmit={addProduct} className="mb-4 grid grid-cols-1 gap-2 rounded-lg bg-white p-4 shadow-sm sm:grid-cols-4">
           <input
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm sm:col-span-2"
@@ -111,17 +172,47 @@ export default function ProductManagementPage() {
               </option>
             ))}
           </select>
+          <input
+            ref={newImageInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={onNewProductImageChange}
+            className="text-sm sm:col-span-4"
+          />
           <button className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white sm:col-span-4">新增商品</button>
         </form>
 
         <div className="space-y-2">
           {products.map((product) => (
             <div key={product.id} className="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm">
-              <div>
-                <p className="font-medium">{product.name}</p>
-                <p className="text-xs text-gray-500">NT$ {product.price}</p>
+              <div className="flex items-center gap-3">
+                {product.image_url ? (
+                  <img src={product.image_url} alt={product.name} className="h-12 w-12 rounded-lg object-cover" />
+                ) : (
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 text-xs text-gray-400">
+                    無圖片
+                  </div>
+                )}
+                <div>
+                  <p className="font-medium">{product.name}</p>
+                  <p className="text-xs text-gray-500">NT$ {product.price}</p>
+                </div>
               </div>
               <div className="flex items-center gap-3">
+                <label className="cursor-pointer text-xs text-blue-600">
+                  {uploadingProductId === product.id ? "上傳中…" : product.image_url ? "更換圖片" : "上傳圖片"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    disabled={uploadingProductId === product.id}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      if (file) void uploadProductImage(product.id, file);
+                    }}
+                  />
+                </label>
                 <button
                   onClick={() => toggleAvailability(product)}
                   className={`rounded-lg px-3 py-1 text-xs font-semibold ${

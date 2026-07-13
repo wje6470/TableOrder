@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24
     frontend_origin: str = "http://localhost:5173"
+    supabase_url: str
+    supabase_service_role_key: str
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

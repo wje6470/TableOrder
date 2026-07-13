@@ -130,15 +130,24 @@ export default function OrderingPage() {
                       key={product.id}
                       disabled={!product.is_available}
                       onClick={() => addToCart(product)}
-                      className={`rounded-xl border p-4 text-left shadow-sm transition ${
+                      className={`overflow-hidden rounded-xl border text-left shadow-sm transition ${
                         product.is_available
                           ? "border-gray-200 bg-white hover:border-blue-400"
                           : "border-gray-200 bg-gray-100 opacity-50"
                       }`}
                     >
-                      <p className="font-medium">{product.name}</p>
-                      <p className="text-sm text-gray-500">NT$ {product.price}</p>
-                      {!product.is_available && <p className="mt-1 text-xs text-red-500">已售完</p>}
+                      {product.image_url ? (
+                        <img src={product.image_url} alt={product.name} className="h-32 w-full object-cover" />
+                      ) : (
+                        <div className="flex h-32 w-full items-center justify-center bg-gray-100 text-xs text-gray-400">
+                          尚無圖片
+                        </div>
+                      )}
+                      <div className="p-4">
+                        <p className="font-medium">{product.name}</p>
+                        <p className="text-sm text-gray-500">NT$ {product.price}</p>
+                        {!product.is_available && <p className="mt-1 text-xs text-red-500">已售完</p>}
+                      </div>
                     </button>
                   ))}
               </div>
