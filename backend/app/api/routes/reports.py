@@ -1,6 +1,7 @@
 import csv
 import io
 from datetime import date
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -13,6 +14,23 @@ from app.schemas.report import AvgOrderValue, ProductRanking, RevenuePoint
 from app.services import report_service
 
 router = APIRouter(prefix="/reports", tags=["reports"], dependencies=[Depends(get_current_store)])
+
+# PDF 匯出用的中文字型：reportlab 內建的 CJK CID 字型（如 MSung-Light）字元對應是錯的，
+# 會印出錯誤的中文字，所以改內嵌 Noto Sans TC（SIL OFL 授權，可自由嵌入），確保顯示正確。
+PDF_CJK_FONT_NAME = "NotoSansTC"
+_PDF_CJK_FONT_PATH = Path(__file__).resolve().parents[2] / "assets" / "fonts" / "NotoSansTC-Regular.ttf"
+_pdf_cjk_font_registered = False
+
+
+def _ensure_pdf_cjk_font_registered() -> None:
+    global _pdf_cjk_font_registered
+    if _pdf_cjk_font_registered:
+        return
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+
+    pdfmetrics.registerFont(TTFont(PDF_CJK_FONT_NAME, str(_PDF_CJK_FONT_PATH)))
+    _pdf_cjk_font_registered = True
 
 
 @router.get("/revenue", response_model=list[RevenuePoint])
@@ -58,8 +76,10 @@ async def export_report(
         )
         writer.writeheader()
         writer.writerows(rows)
+        # 前面加 UTF-8 BOM：Excel（尤其是 Windows 版）沒有 BOM 時會用系統預設編碼（例如 Big5）
+        # 猜測檔案編碼，中文就會變亂碼。有 BOM 才會正確判斷成 UTF-8。
         return StreamingResponse(
-            iter([buffer.getvalue()]),
+            iter(["﻿" + buffer.getvalue()]),
             media_type="text/csv",
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
@@ -94,15 +114,16 @@ async def export_report(
         )
 
     if format == "pdf":
-        # 注意：reportlab 預設字型不含中文字型，商品名稱若含中文會顯示不出來，
-        # 之後需要 registerFont 一個內嵌的 CJK 字型（例如 Noto Sans TC）才能正確顯示中文。
         from reportlab.lib import colors
         from reportlab.lib.pagesizes import A4, landscape
         from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 
+        _ensure_pdf_cjk_font_registered()
+        font_name = PDF_CJK_FONT_NAME
+
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
-        headers = ["Order", "Closed At", "Product", "Qty", "Unit Price", "Subtotal", "Payment"]
+        headers = ["訂單編號", "結帳時間", "商品名稱", "數量", "單價", "小計", "付款方式"]
         data = [headers] + [
             [
                 row["order_id"][:8],
@@ -122,6 +143,7 @@ async def export_report(
                     ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f2937")),
                     ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
                     ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("FONTNAME", (0, 0), (-1, -1), font_name),
                     ("FONTSIZE", (0, 0), (-1, -1), 8),
                 ]
             )
