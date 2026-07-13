@@ -12,6 +12,19 @@
 2. 安裝 [Python 3.11+](https://www.python.org/downloads/)
 3. 註冊 [Supabase](https://supabase.com/) 帳號並建立一個新專案
 
+## 電腦重灌 / 換新環境後如何還原
+
+`.env` 檔案不在 git 裡（`.gitignore` 排除），所以 `git clone` 下來不會自動帶著跑。還原步驟：
+
+1. `git clone` 這個 repo。
+2. 把你自己備份的 `backend/.env` 和 `frontend/.env` 放回對應資料夾（Supabase 專案本身不用重建，這兩個檔案裡的連線字串、金鑰都還能用）。
+3. 交給 Claude Code 設置環境時，只要說類似「電腦重灌了，剛從 GitHub clone 下來、.env 也放回去了，幫我確認環境可以正常運作」就好，不用列細節。原因：
+   - Claude 對這個專案有跨對話的記憶，包含這台機器過去遇過的環境問題（例如全新 Windows 預設沒裝 Node.js／Python，或是 `asyncpg` 在較新版 Python 上要另外處理），會自動檢查、重裝缺的工具。
+   - 它也知道要怎麼啟動前後端、建測試桌號/帳號、用瀏覽器實際操作驗證，不需要你手動照著下面的步驟做一遍。
+4. 如果换成別的機器、或記憶對不上實際狀況（例如工具版本不同），Claude 會重新診斷；這種情況下才需要照本文件下面「事前準備」開始的完整步驟操作，或直接把錯誤訊息貼給它看。
+
+> 提醒：`.env` 目前只在你自己手上，建議另外備份一份（例如密碼管理工具或私人雲端硬碟），重灌電腦不會遺失。
+
 ## 1. 設定 Supabase
 
 Schema 用 [Supabase CLI migration](./supabase/migrations/) 管理（`supabase/migrations/20260708000000_initial_schema.sql`），不用手動貼 SQL Editor。這台機器還沒裝 Supabase CLI（沒有支援的 winget 套件），改用 `npx supabase` 免安裝直接執行。
