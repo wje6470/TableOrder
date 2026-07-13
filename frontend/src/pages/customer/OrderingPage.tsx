@@ -1,3 +1,4 @@
+import { ChevronRight, Minus, Plus, Search, ShoppingCart, Trash2, UtensilsCrossed } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import ThemeToggle from "../../components/ThemeToggle";
@@ -5,6 +6,7 @@ import { useCustomerAuth } from "../../context/CustomerAuthContext";
 import { api, ApiError } from "../../lib/api";
 import { supabase } from "../../lib/supabaseClient";
 import { tableConfig } from "../../lib/table";
+import { categoryPillClass, mutedTextClass, pillInputClass, primaryButtonClass, secondaryButtonClass } from "../../lib/ui";
 import { CartLine, Category, Order, Product } from "../../types";
 
 export default function OrderingPage() {
@@ -15,6 +17,9 @@ export default function OrderingPage() {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   const tableNumber = tableConfig.get() ?? "";
 
@@ -73,10 +78,23 @@ export default function OrderingPage() {
     );
   }
 
+  function removeFromCart(productId: string) {
+    setCart((prev) => prev.filter((line) => line.product.id !== productId));
+  }
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      const matchesCategory = activeCategory === "all" || product.category_id === activeCategory;
+      const matchesSearch = product.name.toLowerCase().includes(searchQuery.trim().toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [products, activeCategory, searchQuery]);
+
   const cartTotal = useMemo(
     () => cart.reduce((sum, line) => sum + Number(line.product.price) * line.quantity, 0),
     [cart]
   );
+  const cartItemCount = cart.reduce((count, line) => count + line.quantity, 0);
 
   const orderedTotal = order ? Number(order.total_amount) : 0;
 
@@ -92,6 +110,7 @@ export default function OrderingPage() {
       );
       setOrder(updated);
       setCart([]);
+      setIsCartOpen(false);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "送出失敗，請再試一次");
     } finally {
@@ -100,117 +119,236 @@ export default function OrderingPage() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50 dark:bg-gray-900">
-      <header className="flex items-center justify-between bg-white px-6 py-4 shadow dark:bg-gray-800">
-        <div>
-          <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">桌號 {tableNumber}</h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400">已累計消費 NT$ {orderedTotal}</p>
-        </div>
-        <div className="flex gap-3">
-          <Link
-            to="/order/history"
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-          >
-            點餐紀錄
-          </Link>
-          <ThemeToggle className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700" />
-          <button
-            onClick={logout}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-          >
-            登出
-          </button>
-        </div>
-      </header>
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+      <div className="flex w-full flex-1 flex-col">
+        <header className="z-10 flex flex-col items-start justify-between gap-4 bg-white p-6 shadow-sm dark:bg-gray-800 dark:shadow-none dark:border-b dark:border-gray-700 md:flex-row md:items-center">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">桌號 {tableNumber}</h1>
+            <p className={`mt-1 text-sm ${mutedTextClass}`}>已累計消費 NT$ {orderedTotal}</p>
+          </div>
+          <div className="flex w-full flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center md:w-auto">
+            <div className="relative w-full sm:w-64">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="搜尋餐點..."
+                className={pillInputClass}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Link to="/order/history" className={secondaryButtonClass}>
+                點餐紀錄
+              </Link>
+              <ThemeToggle />
+              <button onClick={logout} className={secondaryButtonClass}>
+                登出
+              </button>
+              <button
+                onClick={() => setIsCartOpen(!isCartOpen)}
+                className="relative flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-200 transition hover:bg-orange-600 dark:shadow-none"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                查看購物車
+                {cartItemCount > 0 && (
+                  <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 text-xs font-bold text-white dark:border-gray-800">
+                    {cartItemCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+        </header>
 
-      {error && (
-        <p className="bg-red-50 px-6 py-2 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-400">{error}</p>
+        <div className="hide-scrollbar overflow-x-auto border-b border-gray-100 bg-white px-6 py-4 dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex gap-2">
+            <button onClick={() => setActiveCategory("all")} className={categoryPillClass(activeCategory === "all")}>
+              <UtensilsCrossed className="mr-2 h-4 w-4" />
+              全部餐點
+            </button>
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setActiveCategory(category.id)}
+                className={categoryPillClass(activeCategory === category.id)}
+              >
+                {category.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error && (
+          <p className="bg-red-50 px-6 py-2.5 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-400">{error}</p>
+        )}
+
+        <main className="flex-1 overflow-y-auto p-6">
+          {filteredProducts.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center text-gray-400 dark:text-gray-500">
+              <Search className="mb-4 h-16 w-16 text-gray-300 dark:text-gray-600" />
+              <p className="text-lg font-medium">找不到相關餐點</p>
+              <p className="mt-1 text-sm">請試試其他關鍵字或分類</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="group flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-shadow duration-300 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:shadow-none"
+                >
+                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-50 dark:bg-gray-900">
+                    {product.image_url ? (
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-xs text-gray-400 dark:text-gray-500">
+                        尚無圖片
+                      </div>
+                    )}
+                    <div className="absolute right-3 top-3 rounded-lg bg-white/90 px-2 py-1 text-sm font-bold text-orange-600 shadow-sm backdrop-blur-sm dark:bg-gray-900/80 dark:text-orange-400">
+                      NT$ {product.price}
+                    </div>
+                  </div>
+                  <div className="flex flex-1 flex-col p-5">
+                    <h3 className="mb-2 font-bold text-gray-900 dark:text-gray-100">{product.name}</h3>
+                    {product.is_available ? (
+                      <button
+                        onClick={() => addToCart(product)}
+                        className="mt-auto flex w-full items-center justify-center rounded-xl bg-orange-50 py-2.5 font-semibold text-orange-600 transition-colors duration-200 hover:bg-orange-500 hover:text-white dark:bg-orange-500/10 dark:text-orange-400 dark:hover:bg-orange-500 dark:hover:text-white"
+                      >
+                        <Plus className="mr-1 h-5 w-5" />
+                        加入購物車
+                      </button>
+                    ) : (
+                      <div className="mt-auto flex w-full items-center justify-center rounded-xl bg-gray-100 py-2.5 font-semibold text-gray-400 dark:bg-gray-700 dark:text-gray-500">
+                        已售完
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+
+      {isCartOpen && (
+        <div className="fixed inset-0 z-40 bg-black/50 transition-opacity" onClick={() => setIsCartOpen(false)} />
       )}
 
-      <div className="flex flex-1 overflow-hidden">
-        <main className="flex-1 overflow-y-auto p-6">
-          {categories.map((category) => (
-            <section key={category.id} className="mb-8">
-              <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-gray-100">{category.name}</h2>
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                {products
-                  .filter((p) => p.category_id === category.id)
-                  .map((product) => (
-                    <button
-                      key={product.id}
-                      disabled={!product.is_available}
-                      onClick={() => addToCart(product)}
-                      className={`overflow-hidden rounded-xl border text-left shadow-sm transition ${
-                        product.is_available
-                          ? "border-gray-200 bg-white hover:border-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-500"
-                          : "border-gray-200 bg-gray-100 opacity-50 dark:border-gray-700 dark:bg-gray-800"
-                      }`}
-                    >
-                      {product.image_url ? (
-                        <div className="flex aspect-[4/3] w-full items-center justify-center bg-gray-50 dark:bg-gray-900">
-                          <img
-                            src={product.image_url}
-                            alt={product.name}
-                            className="h-full w-full object-contain"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex aspect-[4/3] w-full items-center justify-center bg-gray-100 text-xs text-gray-400 dark:bg-gray-900 dark:text-gray-500">
-                          尚無圖片
-                        </div>
-                      )}
-                      <div className="p-4">
-                        <p className="font-medium text-gray-900 dark:text-gray-100">{product.name}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">NT$ {product.price}</p>
-                        {!product.is_available && (
-                          <p className="mt-1 text-xs text-red-500 dark:text-red-400">已售完</p>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-              </div>
-            </section>
-          ))}
-        </main>
+      <aside
+        className={`fixed inset-y-0 right-0 z-50 flex w-full transform flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out dark:bg-gray-800 dark:border-l dark:border-gray-700 md:w-96 ${
+          isCartOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-gray-100 p-6 dark:border-gray-700">
+          <div className="flex items-center">
+            <ShoppingCart className="mr-3 h-6 w-6 text-orange-500" />
+            <h2 className="text-xl font-bold tracking-tight text-gray-900 dark:text-gray-100">購物車</h2>
+            <span className="ml-3 rounded-full bg-orange-100 px-2.5 py-1 text-xs font-bold text-orange-700 dark:bg-orange-500/20 dark:text-orange-300">
+              {cartItemCount} 項
+            </span>
+          </div>
+          <button
+            className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
+            onClick={() => setIsCartOpen(false)}
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
+        </div>
 
-        <aside className="w-80 border-l bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-          <h2 className="mb-3 font-semibold text-gray-900 dark:text-gray-100">本次購物車</h2>
-          <div className="space-y-2">
-            {cart.map((line) => (
-              <div key={line.product.id} className="flex items-center justify-between text-sm text-gray-800 dark:text-gray-200">
-                <span>{line.product.name}</span>
-                <div className="flex items-center gap-2">
+        <div className="flex-1 overflow-y-auto p-6">
+          {cart.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center text-gray-400 dark:text-gray-500">
+              <div className="mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
+                <ShoppingCart className="h-10 w-10 text-gray-300 dark:text-gray-500" />
+              </div>
+              <p className="font-medium text-gray-500 dark:text-gray-400">購物車是空的</p>
+              <p className="mt-1 text-sm">快去挑選一些餐點吧！</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {cart.map((line) => (
+                <div
+                  key={line.product.id}
+                  className="group relative flex rounded-xl border border-gray-100 bg-gray-50/50 p-3 dark:border-gray-700 dark:bg-gray-900/50"
+                >
+                  {line.product.image_url ? (
+                    <img
+                      src={line.product.image_url}
+                      alt={line.product.name}
+                      className="h-16 w-16 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-gray-100 text-[10px] text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                      無圖片
+                    </div>
+                  )}
+                  <div className="ml-4 flex flex-1 flex-col justify-between">
+                    <div>
+                      <h4 className="line-clamp-1 font-semibold text-gray-800 dark:text-gray-100">
+                        {line.product.name}
+                      </h4>
+                      <p className="mt-1 text-sm font-bold text-orange-500 dark:text-orange-400">
+                        NT$ {line.product.price}
+                      </p>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <div className="flex items-center rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
+                        <button
+                          onClick={() => changeQuantity(line.product.id, -1)}
+                          className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-gray-600 shadow-sm transition-colors hover:text-orange-500 dark:bg-gray-800 dark:text-gray-200"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </button>
+                        <span className="w-8 text-center text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {line.quantity}
+                        </span>
+                        <button
+                          onClick={() => changeQuantity(line.product.id, 1)}
+                          className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-gray-600 shadow-sm transition-colors hover:text-orange-500 dark:bg-gray-800 dark:text-gray-200"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+                      <div className="font-bold text-gray-800 dark:text-gray-100">
+                        NT$ {Number(line.product.price) * line.quantity}
+                      </div>
+                    </div>
+                  </div>
                   <button
-                    className="h-6 w-6 rounded bg-gray-200 dark:bg-gray-700 dark:text-gray-100"
-                    onClick={() => changeQuantity(line.product.id, -1)}
+                    onClick={() => removeFromCart(line.product.id)}
+                    className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 opacity-0 shadow-sm transition-opacity hover:text-red-500 group-hover:opacity-100 dark:border-gray-600 dark:bg-gray-800"
                   >
-                    -
-                  </button>
-                  <span>{line.quantity}</span>
-                  <button
-                    className="h-6 w-6 rounded bg-gray-200 dark:bg-gray-700 dark:text-gray-100"
-                    onClick={() => changeQuantity(line.product.id, 1)}
-                  >
-                    +
+                    <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
-              </div>
-            ))}
-            {cart.length === 0 && <p className="text-sm text-gray-400 dark:text-gray-500">尚未選擇商品</p>}
-          </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-          <div className="mt-4 border-t pt-4 dark:border-gray-700">
-            <p className="mb-2 text-sm text-gray-800 dark:text-gray-200">小計 NT$ {cartTotal}</p>
-            <button
-              disabled={cart.length === 0 || submitting}
-              onClick={submitCart}
-              className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
-            >
-              送出點餐
-            </button>
+        <div className="border-t border-gray-100 p-6 dark:border-gray-700">
+          <div className="mb-4 flex items-end justify-between border-t border-dashed border-gray-200 pt-4 dark:border-gray-700">
+            <span className="font-medium text-gray-800 dark:text-gray-200">小計</span>
+            <span className="text-3xl font-bold text-orange-600 dark:text-orange-400">NT$ {cartTotal}</span>
           </div>
-        </aside>
-      </div>
+          <button
+            disabled={cart.length === 0 || submitting}
+            onClick={submitCart}
+            className={`flex w-full items-center justify-center ${primaryButtonClass}`}
+          >
+            送出點餐
+            <ChevronRight className="ml-2 h-5 w-5" />
+          </button>
+        </div>
+      </aside>
     </div>
   );
 }

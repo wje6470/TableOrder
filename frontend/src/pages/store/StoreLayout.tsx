@@ -14,17 +14,17 @@ export default function StoreLayout() {
 
   return (
     <div className="flex h-screen flex-col bg-gray-50 dark:bg-gray-900">
-      <header className="flex items-center justify-between border-b bg-white px-6 py-3 dark:border-gray-700 dark:bg-gray-800">
-        <nav className="flex gap-2">
+      <header className="flex items-center justify-between bg-white px-8 py-4 shadow-soft dark:bg-gray-800 dark:shadow-none dark:border-b dark:border-gray-700">
+        <nav className="flex gap-1">
           {tabs.map((tab) => (
             <NavLink
               key={tab.to}
               to={tab.to}
               end={tab.end}
               className={({ isActive }) =>
-                `rounded-lg px-4 py-2 text-sm font-medium ${
+                `rounded-xl px-4 py-2 text-sm font-medium transition ${
                   isActive
-                    ? "bg-gray-900 text-white dark:bg-gray-700"
+                    ? "bg-orange-500 text-white"
                     : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                 }`
               }
@@ -34,13 +34,16 @@ export default function StoreLayout() {
           ))}
         </nav>
         <div className="flex items-center gap-3">
-          <ThemeToggle className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
-          <button onClick={logout} className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+          <ThemeToggle className="text-sm font-medium text-gray-500 transition hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
+          <button
+            onClick={logout}
+            className="text-sm font-medium text-gray-500 transition hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
             登出
           </button>
         </div>
       </header>
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-8">
         <Outlet />
       </main>
     </div>

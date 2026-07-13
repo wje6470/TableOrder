@@ -1,5 +1,6 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "../../lib/api";
+import { cardClass, mutedTextClass, primaryButtonClass } from "../../lib/ui";
 import { Category, Product } from "../../types";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -118,29 +119,32 @@ export default function ProductManagementPage() {
     await refresh();
   }
 
+  const compactInputClass =
+    "rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 transition focus:border-orange-500 focus:outline-none focus:ring-4 focus:ring-orange-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:ring-orange-500/20";
+  const compactButtonClass =
+    "rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600";
+
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
       <section className="lg:col-span-1">
-        <h2 className="mb-3 text-lg font-bold text-gray-900 dark:text-gray-100">分類管理</h2>
-        <form onSubmit={addCategory} className="mb-3 flex gap-2">
+        <h2 className="mb-4 text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">分類管理</h2>
+        <form onSubmit={addCategory} className="mb-4 flex gap-2">
           <input
-            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+            className={`flex-1 ${compactInputClass}`}
             placeholder="新增分類名稱"
             value={newCategoryName}
             onChange={(e) => setNewCategoryName(e.target.value)}
           />
-          <button className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600">
-            新增
-          </button>
+          <button className={compactButtonClass}>新增</button>
         </form>
         <ul className="space-y-2">
           {categories.map((c) => (
             <li
               key={c.id}
-              className="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm text-gray-900 dark:bg-gray-800 dark:text-gray-100"
+              className={`${cardClass} flex items-center justify-between p-4 text-gray-900 dark:text-gray-100`}
             >
               <span>{c.name}</span>
-              <button className="text-sm text-red-500 dark:text-red-400" onClick={() => deleteCategory(c.id)}>
+              <button className="text-sm font-medium text-red-500 dark:text-red-400" onClick={() => deleteCategory(c.id)}>
                 刪除
               </button>
             </li>
@@ -149,31 +153,28 @@ export default function ProductManagementPage() {
       </section>
 
       <section className="lg:col-span-2">
-        <h2 className="mb-3 text-lg font-bold text-gray-900 dark:text-gray-100">商品管理</h2>
+        <h2 className="mb-4 text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">商品管理</h2>
         {error && (
-          <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-400">
+          <p className="mb-4 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-400">
             {error}
           </p>
         )}
-        <form
-          onSubmit={addProduct}
-          className="mb-4 grid grid-cols-1 gap-2 rounded-lg bg-white p-4 shadow-sm sm:grid-cols-4 dark:bg-gray-800"
-        >
+        <form onSubmit={addProduct} className={`${cardClass} mb-6 grid grid-cols-1 gap-3 p-5 sm:grid-cols-4`}>
           <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm sm:col-span-2 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500"
+            className={`sm:col-span-2 ${compactInputClass}`}
             placeholder="商品名稱"
             value={newProduct.name}
             onChange={(e) => setNewProduct((p) => ({ ...p, name: e.target.value }))}
           />
           <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500"
+            className={compactInputClass}
             placeholder="價格"
             type="number"
             value={newProduct.price}
             onChange={(e) => setNewProduct((p) => ({ ...p, price: e.target.value }))}
           />
           <select
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+            className={compactInputClass}
             value={newProduct.category_id}
             onChange={(e) => setNewProduct((p) => ({ ...p, category_id: e.target.value }))}
           >
@@ -191,32 +192,31 @@ export default function ProductManagementPage() {
             onChange={onNewProductImageChange}
             className="text-sm text-gray-700 sm:col-span-4 dark:text-gray-300"
           />
-          <button className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-700 sm:col-span-4 dark:bg-gray-700 dark:hover:bg-gray-600">
-            新增商品
-          </button>
+          <button className={`sm:col-span-4 ${primaryButtonClass}`}>新增商品</button>
         </form>
 
         <div className="space-y-2">
           {products.map((product) => (
-            <div
-              key={product.id}
-              className="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm dark:bg-gray-800"
-            >
-              <div className="flex items-center gap-3">
+            <div key={product.id} className={`${cardClass} flex items-center justify-between p-4`}>
+              <div className="flex items-center gap-4">
                 {product.image_url ? (
-                  <img src={product.image_url} alt={product.name} className="h-12 w-12 rounded-lg object-cover" />
+                  <img
+                    src={product.image_url}
+                    alt={product.name}
+                    className="h-12 w-12 rounded-xl object-cover"
+                  />
                 ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 text-xs text-gray-400 dark:bg-gray-900 dark:text-gray-500">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-50 text-xs text-gray-400 dark:bg-gray-900 dark:text-gray-500">
                     無圖片
                   </div>
                 )}
                 <div>
                   <p className="font-medium text-gray-900 dark:text-gray-100">{product.name}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">NT$ {product.price}</p>
+                  <p className={`text-xs ${mutedTextClass}`}>NT$ {product.price}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <label className="cursor-pointer text-xs text-blue-600 dark:text-blue-400">
+              <div className="flex items-center gap-4">
+                <label className="cursor-pointer text-xs font-medium text-orange-600 dark:text-orange-400">
                   {uploadingProductId === product.id ? "上傳中…" : product.image_url ? "更換圖片" : "上傳圖片"}
                   <input
                     type="file"
@@ -240,7 +240,10 @@ export default function ProductManagementPage() {
                 >
                   {product.is_available ? "上架中" : "已售完"}
                 </button>
-                <button className="text-sm text-red-500 dark:text-red-400" onClick={() => deleteProduct(product.id)}>
+                <button
+                  className="text-sm font-medium text-red-500 dark:text-red-400"
+                  onClick={() => deleteProduct(product.id)}
+                >
                   刪除
                 </button>
               </div>

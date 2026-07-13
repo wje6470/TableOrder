@@ -11,3 +11,12 @@ html.dark {
   color-scheme: dark;
   background-color: #111827;
 }
+
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

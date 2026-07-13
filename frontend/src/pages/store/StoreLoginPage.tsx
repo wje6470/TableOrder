@@ -1,6 +1,8 @@
 import { FormEvent, useState } from "react";
+import Card from "../../components/Card";
 import { useStoreAuth } from "../../context/StoreAuthContext";
 import { ApiError } from "../../lib/api";
+import { inputClass, primaryButtonClass } from "../../lib/ui";
 
 export default function StoreLoginPage() {
   const { login } = useStoreAuth();
@@ -23,31 +25,31 @@ export default function StoreLoginPage() {
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 rounded-xl bg-white p-8 shadow dark:bg-gray-800">
-        <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">店家後台登入</h1>
-        <input
-          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500"
-          placeholder="帳號"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-        <input
-          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500"
-          placeholder="密碼"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-gray-900 py-3 text-lg font-semibold text-white hover:bg-gray-700 disabled:opacity-50 dark:bg-gray-700 dark:hover:bg-gray-600"
-        >
-          登入
-        </button>
-      </form>
+    <div className="flex h-screen items-center justify-center bg-gray-50 px-6 dark:bg-gray-900">
+      <Card className="w-full max-w-sm p-8">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-gray-100">店家後台登入</h1>
+          <div className="space-y-3">
+            <input
+              className={inputClass}
+              placeholder="帳號"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            <input
+              className={inputClass}
+              placeholder="密碼"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+          <button type="submit" disabled={loading} className={`w-full ${primaryButtonClass}`}>
+            登入
+          </button>
+        </form>
+      </Card>
     </div>
   );
 }

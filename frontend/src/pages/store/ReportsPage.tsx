@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useTheme } from "../../hooks/useTheme";
 import { storeAuth } from "../../lib/auth";
+import { cardClass, mutedTextClass, secondaryButtonClass } from "../../lib/ui";
 
 interface RevenuePoint {
   period: string;
@@ -81,57 +82,52 @@ export default function ReportsPage() {
 
   const chartData = revenue.map((r) => ({ period: r.period, revenue: Number(r.revenue) }));
 
+  const dateInputClass =
+    "rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 transition focus:border-orange-500 focus:outline-none focus:ring-4 focus:ring-orange-500/10 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100";
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end gap-4">
         <div>
-          <label className="block text-xs text-gray-500 dark:text-gray-400">開始日期</label>
-          <input
-            type="date"
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
+          <label className={`mb-1.5 block text-xs font-medium ${mutedTextClass}`}>開始日期</label>
+          <input type="date" className={dateInputClass} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 dark:text-gray-400">結束日期</label>
-          <input
-            type="date"
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
+          <label className={`mb-1.5 block text-xs font-medium ${mutedTextClass}`}>結束日期</label>
+          <input type="date" className={dateInputClass} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </div>
         <div className="flex gap-2">
           {(["csv", "xlsx", "pdf"] as const).map((format) => (
-            <button
-              key={format}
-              onClick={() => exportReport(format)}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 dark:border-gray-600 dark:text-gray-300"
-            >
+            <button key={format} onClick={() => exportReport(format)} className={secondaryButtonClass}>
               匯出 {format.toUpperCase()}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-800">
-          <p className="text-xs text-gray-500 dark:text-gray-400">總營收</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">NT$ {avgOrderValue?.total_revenue ?? 0}</p>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+        <div className={`${cardClass} p-5`}>
+          <p className={`text-xs ${mutedTextClass}`}>總營收</p>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+            NT$ {avgOrderValue?.total_revenue ?? 0}
+          </p>
         </div>
-        <div className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-800">
-          <p className="text-xs text-gray-500 dark:text-gray-400">訂單數</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{avgOrderValue?.order_count ?? 0}</p>
+        <div className={`${cardClass} p-5`}>
+          <p className={`text-xs ${mutedTextClass}`}>訂單數</p>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+            {avgOrderValue?.order_count ?? 0}
+          </p>
         </div>
-        <div className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-800">
-          <p className="text-xs text-gray-500 dark:text-gray-400">客單價</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">NT$ {avgOrderValue?.avg_order_value ?? 0}</p>
+        <div className={`${cardClass} p-5`}>
+          <p className={`text-xs ${mutedTextClass}`}>客單價</p>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+            NT$ {avgOrderValue?.avg_order_value ?? 0}
+          </p>
         </div>
       </div>
 
-      <div className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-800">
-        <h2 className="mb-3 font-semibold text-gray-900 dark:text-gray-100">每日營收</h2>
+      <div className={`${cardClass} p-5`}>
+        <h2 className="mb-4 font-semibold tracking-tight text-gray-900 dark:text-gray-100">每日營收</h2>
         <div style={{ width: "100%", height: 280 }}>
           <ResponsiveContainer>
             <BarChart data={chartData}>
@@ -141,32 +137,32 @@ export default function ReportsPage() {
               <Tooltip
                 contentStyle={
                   isDark
-                    ? { backgroundColor: "#1f2937", border: "1px solid #374151", color: "#f3f4f6" }
-                    : undefined
+                    ? { backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: "0.75rem", color: "#f3f4f6" }
+                    : { borderRadius: "0.75rem", border: "1px solid #e5e7eb" }
                 }
               />
-              <Bar dataKey="revenue" fill={isDark ? "#3b82f6" : "#2563eb"} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="revenue" fill={isDark ? "#fb923c" : "#f97316"} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      <div className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-800">
-        <h2 className="mb-3 font-semibold text-gray-900 dark:text-gray-100">商品銷售排行</h2>
+      <div className={`${cardClass} p-5`}>
+        <h2 className="mb-4 font-semibold tracking-tight text-gray-900 dark:text-gray-100">商品銷售排行</h2>
         <table className="w-full text-sm text-gray-800 dark:text-gray-200">
           <thead>
-            <tr className="border-b text-left text-gray-500 dark:border-gray-700 dark:text-gray-400">
-              <th className="py-2">商品</th>
-              <th className="py-2">銷售數量</th>
-              <th className="py-2">營收</th>
+            <tr className="border-b border-gray-100 text-left text-gray-500 dark:border-gray-700 dark:text-gray-400">
+              <th className="py-2 font-medium">商品</th>
+              <th className="py-2 font-medium">銷售數量</th>
+              <th className="py-2 font-medium">營收</th>
             </tr>
           </thead>
           <tbody>
             {topProducts.map((p) => (
-              <tr key={p.product_id} className="border-b last:border-0 dark:border-gray-700">
-                <td className="py-2">{p.product_name}</td>
-                <td className="py-2">{p.quantity_sold}</td>
-                <td className="py-2">NT$ {p.revenue}</td>
+              <tr key={p.product_id} className="border-b border-gray-100 last:border-0 dark:border-gray-700">
+                <td className="py-2.5">{p.product_name}</td>
+                <td className="py-2.5">{p.quantity_sold}</td>
+                <td className="py-2.5">NT$ {p.revenue}</td>
               </tr>
             ))}
           </tbody>
