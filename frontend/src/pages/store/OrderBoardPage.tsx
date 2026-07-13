@@ -1,3 +1,4 @@
+import { StickyNote } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { supabase } from "../../lib/supabaseClient";
@@ -54,11 +55,19 @@ export default function OrderBoardPage() {
                 {new Date(order.opened_at).toLocaleTimeString()}
               </span>
             </div>
-            <ul className="space-y-1 text-sm text-gray-800 dark:text-gray-200">
+            <ul className="space-y-1.5 text-sm text-gray-800 dark:text-gray-200">
               {order.items.map((item) => (
-                <li key={item.id} className="flex justify-between">
-                  <span>{item.product_name} x{item.quantity}</span>
-                  <span>NT$ {item.subtotal}</span>
+                <li key={item.id}>
+                  <div className="flex justify-between">
+                    <span>{item.product_name} x{item.quantity}</span>
+                    <span>NT$ {item.subtotal}</span>
+                  </div>
+                  {item.note && (
+                    <div className="mt-0.5 flex items-start gap-1 text-xs font-medium text-orange-600 dark:text-orange-400">
+                      <StickyNote className="mt-0.5 h-3 w-3 flex-shrink-0" />
+                      <span>{item.note}</span>
+                    </div>
+                  )}
                 </li>
               ))}
               {order.items.length === 0 && <li className="text-gray-400 dark:text-gray-500">尚未點餐</li>}

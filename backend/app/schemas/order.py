@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class OrderOpenRequest(BaseModel):
@@ -12,6 +12,7 @@ class OrderOpenRequest(BaseModel):
 class OrderItemIn(BaseModel):
     product_id: uuid.UUID
     quantity: int
+    note: str | None = Field(default=None, max_length=200)
 
 
 class AddItemsRequest(BaseModel):
@@ -27,6 +28,7 @@ class OrderItemOut(BaseModel):
     quantity: int
     unit_price: Decimal
     subtotal: Decimal
+    note: str | None
     created_at: datetime
 
 

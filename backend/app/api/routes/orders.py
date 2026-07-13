@@ -80,6 +80,7 @@ async def add_items(
         if not product.is_available:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"「{product.name}」已售完")
         subtotal = product.price * item.quantity
+        note = item.note.strip() if item.note else None
         db.add(
             OrderItem(
                 order_id=order.id,
@@ -88,6 +89,7 @@ async def add_items(
                 quantity=item.quantity,
                 unit_price=product.price,
                 subtotal=subtotal,
+                note=note or None,
             )
         )
         added_total += subtotal

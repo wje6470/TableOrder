@@ -1,3 +1,4 @@
+import { StickyNote } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../lib/api";
@@ -57,11 +58,19 @@ export default function OrderHistoryPage() {
                     <div className={`mt-3 text-sm ${mutedTextClass}`}>
                       付款方式：{order.payment_method === "cash" ? "現金" : "其他"}
                     </div>
-                    <ul className="mt-2 space-y-1 text-sm text-gray-800 dark:text-gray-200">
+                    <ul className="mt-2 space-y-1.5 text-sm text-gray-800 dark:text-gray-200">
                       {order.items.map((item) => (
-                        <li key={item.id} className="flex justify-between">
-                          <span>{item.product_name} x{item.quantity}</span>
-                          <span>NT$ {item.subtotal}</span>
+                        <li key={item.id}>
+                          <div className="flex justify-between">
+                            <span>{item.product_name} x{item.quantity}</span>
+                            <span>NT$ {item.subtotal}</span>
+                          </div>
+                          {item.note && (
+                            <div className="mt-0.5 flex items-start gap-1 text-xs font-medium text-orange-600 dark:text-orange-400">
+                              <StickyNote className="mt-0.5 h-3 w-3 flex-shrink-0" />
+                              <span>{item.note}</span>
+                            </div>
+                          )}
                         </li>
                       ))}
                     </ul>

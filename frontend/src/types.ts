@@ -21,6 +21,7 @@ export interface OrderItem {
   quantity: number;
   unit_price: string;
   subtotal: string;
+  note: string | null;
   created_at: string;
 }
 
@@ -40,4 +41,5 @@ export interface Order {
 export interface CartLine {
   product: Product;
   quantity: number;
+  note: string;
 }

@@ -1,4 +1,4 @@
-import { ChevronRight, Minus, Plus, Search, ShoppingCart, Trash2, UtensilsCrossed } from "lucide-react";
+import { ChevronRight, Minus, Plus, Search, ShoppingCart, StickyNote, Trash2, UtensilsCrossed } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import ThemeToggle from "../../components/ThemeToggle";
@@ -66,7 +66,7 @@ export default function OrderingPage() {
           line.product.id === product.id ? { ...line, quantity: line.quantity + 1 } : line
         );
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product, quantity: 1, note: "" }];
     });
   }
 
@@ -76,6 +76,10 @@ export default function OrderingPage() {
         .map((line) => (line.product.id === productId ? { ...line, quantity: line.quantity + delta } : line))
         .filter((line) => line.quantity > 0)
     );
+  }
+
+  function updateNote(productId: string, note: string) {
+    setCart((prev) => prev.map((line) => (line.product.id === productId ? { ...line, note } : line)));
   }
 
   function removeFromCart(productId: string) {
@@ -105,7 +109,13 @@ export default function OrderingPage() {
     try {
       const updated = await api.post<Order>(
         `/orders/${order.id}/items`,
-        { items: cart.map((line) => ({ product_id: line.product.id, quantity: line.quantity })) },
+        {
+          items: cart.map((line) => ({
+            product_id: line.product.id,
+            quantity: line.quantity,
+            note: line.note.trim() || undefined,
+          })),
+        },
         "customer"
       );
       setOrder(updated);
@@ -298,6 +308,17 @@ export default function OrderingPage() {
                       <p className="mt-1 text-sm font-bold text-orange-500 dark:text-orange-400">
                         NT$ {line.product.price}
                       </p>
+                    </div>
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <StickyNote className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
+                      <input
+                        type="text"
+                        value={line.note}
+                        onChange={(e) => updateNote(line.product.id, e.target.value)}
+                        placeholder="備註（例如：少冰、不要辣）"
+                        maxLength={200}
+                        className="w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 placeholder-gray-400 transition focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/10 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500"
+                      />
                     </div>
                     <div className="mt-2 flex items-center justify-between">
                       <div className="flex items-center rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
