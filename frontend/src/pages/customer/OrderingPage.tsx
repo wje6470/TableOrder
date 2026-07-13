@@ -137,9 +137,15 @@ export default function OrderingPage() {
                       }`}
                     >
                       {product.image_url ? (
-                        <img src={product.image_url} alt={product.name} className="h-32 w-full object-cover" />
+                        <div className="flex aspect-[4/3] w-full items-center justify-center bg-gray-50">
+                          <img
+                            src={product.image_url}
+                            alt={product.name}
+                            className="h-full w-full object-contain"
+                          />
+                        </div>
                       ) : (
-                        <div className="flex h-32 w-full items-center justify-center bg-gray-100 text-xs text-gray-400">
+                        <div className="flex aspect-[4/3] w-full items-center justify-center bg-gray-100 text-xs text-gray-400">
                           尚無圖片
                         </div>
                       )}
