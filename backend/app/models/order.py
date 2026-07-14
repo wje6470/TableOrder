@@ -20,5 +20,6 @@ class Order(Base):
     payment_method: Mapped[str | None] = mapped_column(String, nullable=True)
     paid_amount: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     total_amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
+    discount_amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
 
     items: Mapped[list["OrderItem"]] = relationship(back_populates="order", cascade="all, delete-orphan")

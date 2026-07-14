@@ -5,7 +5,7 @@ import { customerAuth } from "../lib/auth";
 interface CustomerAuthContextValue {
   isLoggedIn: boolean;
   login: (phone: string, password: string) => Promise<void>;
-  register: (phone: string, password: string, name?: string) => Promise<void>;
+  register: (phone: string, password: string, name?: string, birthday?: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -20,11 +20,12 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     setIsLoggedIn(true);
   }
 
-  async function register(phone: string, password: string, name?: string) {
+  async function register(phone: string, password: string, name?: string, birthday?: string) {
     const { access_token } = await api.post<{ access_token: string }>("/auth/customer/register", {
       phone,
       password,
       name,
+      birthday: birthday || undefined,
     });
     customerAuth.setToken(access_token);
     setIsLoggedIn(true);

@@ -55,6 +55,7 @@ class OrderOut(BaseModel):
     payment_method: str | None
     paid_amount: Decimal | None
     total_amount: Decimal
+    discount_amount: Decimal
     items: list[OrderItemOut] = []
 
 

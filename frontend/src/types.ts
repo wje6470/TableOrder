@@ -66,7 +66,34 @@ export interface Order {
   payment_method: "cash" | "other" | null;
   paid_amount: string | null;
   total_amount: string;
+  discount_amount: string;
   items: OrderItem[];
+}
+
+export interface Coupon {
+  id: string;
+  customer_id: string;
+  order_id: string | null;
+  product_id: string | null;
+  title: string | null;
+  discount_type: "fixed" | "percentage";
+  discount_value: string;
+  valid_until: string | null;
+  source: "manual" | "bulk" | "birthday";
+  is_used: boolean;
+  used_at: string | null;
+  created_at: string;
+}
+
+export interface BirthdayCouponRule {
+  id: string;
+  product_id: string;
+  discount_type: "fixed" | "percentage";
+  discount_value: string;
+  title: string | null;
+  is_enabled: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CartLine {

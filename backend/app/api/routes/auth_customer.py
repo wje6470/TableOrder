@@ -16,7 +16,12 @@ async def register(payload: CustomerRegister, db: AsyncSession = Depends(get_db)
     if existing is not None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="此手機號碼已註冊過")
 
-    customer = Customer(phone=payload.phone, password_hash=hash_password(payload.password), name=payload.name)
+    customer = Customer(
+        phone=payload.phone,
+        password_hash=hash_password(payload.password),
+        name=payload.name,
+        birthday=payload.birthday,
+    )
     db.add(customer)
     await db.commit()
     await db.refresh(customer)

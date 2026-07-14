@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_customer, get_current_payload, get_current_store
 from app.db.session import get_db
+from app.models.coupon import Coupon
 from app.models.customer import Customer
 from app.models.kitchen_ticket import KitchenTicket
 from app.models.order import Order
@@ -185,8 +186,35 @@ async def checkout_order(
     table = await db.get(Table, order.table_id)
 
     order.total_amount = sum((item.subtotal for item in order.items), Decimal("0"))
+
+    coupon = await db.scalar(select(Coupon).where(Coupon.order_id == order.id, Coupon.is_used.is_(False)))
+    discount = Decimal("0")
+    if coupon is not None:
+        applicable_base = order.total_amount
+        is_applicable = coupon.valid_until is None or coupon.valid_until >= date.today()
+
+        if is_applicable and coupon.product_id is not None:
+            applicable_base = sum(
+                (item.subtotal for item in order.items if item.product_id == coupon.product_id), Decimal("0")
+            )
+            is_applicable = applicable_base > 0
+
+        if not is_applicable:
+            coupon.order_id = None
+        else:
+            if coupon.discount_type == "fixed":
+                discount = min(coupon.discount_value, applicable_base)
+            else:
+                discount = min(
+                    (applicable_base * coupon.discount_value / Decimal("100")).quantize(Decimal("0.01")),
+                    applicable_base,
+                )
+            coupon.is_used = True
+            coupon.used_at = datetime.now(timezone.utc)
+    order.discount_amount = discount
+
     order.payment_method = payload.payment_method
-    order.paid_amount = order.total_amount
+    order.paid_amount = order.total_amount - discount
     order.status = "closed"
     order.closed_at = datetime.now(timezone.utc)
     if table is not None:

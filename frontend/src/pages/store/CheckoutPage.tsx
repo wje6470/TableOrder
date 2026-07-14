@@ -2,16 +2,36 @@ import { StickyNote } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../../lib/api";
 import { cardClass, mutedTextClass, primaryButtonClass } from "../../lib/ui";
-import { Order } from "../../types";
+import { Coupon, Order } from "../../types";
 
 interface TableInfo {
   id: string;
   table_number: string;
 }
 
+function previewDiscount(order: Order, coupon: Coupon): { discount: number; applicable: boolean } {
+  const today = new Date().toISOString().slice(0, 10);
+  if (coupon.valid_until && coupon.valid_until < today) {
+    return { discount: 0, applicable: false };
+  }
+
+  let base = Number(order.total_amount);
+  if (coupon.product_id) {
+    base = order.items
+      .filter((item) => item.product_id === coupon.product_id)
+      .reduce((sum, item) => sum + Number(item.subtotal), 0);
+    if (base <= 0) return { discount: 0, applicable: false };
+  }
+
+  const value = Number(coupon.discount_value);
+  const discount = coupon.discount_type === "fixed" ? value : Math.round(base * (value / 100) * 100) / 100;
+  return { discount: Math.min(discount, base), applicable: true };
+}
+
 export default function CheckoutPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [tables, setTables] = useState<TableInfo[]>([]);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "other">("cash");
   const [error, setError] = useState<string | null>(null);
@@ -22,12 +42,14 @@ export default function CheckoutPage() {
   }, []);
 
   async function refresh() {
-    const [openOrders, tableList] = await Promise.all([
+    const [openOrders, tableList, couponList] = await Promise.all([
       api.get<Order[]>("/orders/open", "store"),
       api.get<TableInfo[]>("/tables"),
+      api.get<Coupon[]>("/coupons", "store"),
     ]);
     setOrders(openOrders);
     setTables(tableList);
+    setCoupons(couponList);
   }
 
   function tableNumberOf(tableId: string) {
@@ -35,6 +57,9 @@ export default function CheckoutPage() {
   }
 
   const selectedOrder = orders.find((o) => o.id === selectedId) ?? null;
+  const appliedCoupon = coupons.find((c) => c.order_id === selectedOrder?.id && !c.is_used) ?? null;
+  const preview = selectedOrder && appliedCoupon ? previewDiscount(selectedOrder, appliedCoupon) : null;
+  const discount = preview?.discount ?? 0;
 
   async function confirmCheckout() {
     if (!selectedOrder) return;
@@ -100,8 +125,26 @@ export default function CheckoutPage() {
                 </li>
               ))}
             </ul>
-            <div className="mb-5 border-t border-gray-100 pt-3 text-right text-lg font-bold text-gray-900 dark:border-gray-700 dark:text-gray-100">
-              合計 NT$ {selectedOrder.total_amount}
+            <div className="mb-5 border-t border-gray-100 pt-3 dark:border-gray-700">
+              <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
+                <span>小計</span>
+                <span>NT$ {selectedOrder.total_amount}</span>
+              </div>
+              {appliedCoupon && preview?.applicable && (
+                <div className="mt-1 flex items-center justify-between text-sm text-orange-600 dark:text-orange-400">
+                  <span>優惠券：{appliedCoupon.title ?? "折扣"}</span>
+                  <span>-NT$ {discount}</span>
+                </div>
+              )}
+              {appliedCoupon && preview && !preview.applicable && (
+                <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                  已套用的優惠券{appliedCoupon.product_id ? "（顧客未點限定商品）" : "（已過期）"}不適用，結帳時不會折抵
+                </p>
+              )}
+              <div className="mt-1 flex items-center justify-between text-lg font-bold text-gray-900 dark:text-gray-100">
+                <span>應付</span>
+                <span>NT$ {(Number(selectedOrder.total_amount) - discount).toFixed(2)}</span>
+              </div>
             </div>
 
             <div className="mb-5 flex gap-3">

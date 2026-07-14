@@ -11,6 +11,7 @@ export default function AuthPage() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [birthday, setBirthday] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -22,7 +23,7 @@ export default function AuthPage() {
       if (mode === "login") {
         await login(phone, password);
       } else {
-        await register(phone, password, name || undefined);
+        await register(phone, password, name || undefined, birthday || undefined);
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "發生錯誤，請再試一次");
@@ -57,6 +58,17 @@ export default function AuthPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
+            )}
+            {mode === "register" && (
+              <label className="block">
+                <span className={`mb-1 block text-xs ${mutedTextClass}`}>生日（選填，可享生日優惠）</span>
+                <input
+                  className={inputClass}
+                  type="date"
+                  value={birthday}
+                  onChange={(e) => setBirthday(e.target.value)}
+                />
+              </label>
             )}
             <input
               className={inputClass}

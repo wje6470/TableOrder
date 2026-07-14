@@ -10,6 +10,7 @@ import StoreLayout from "./pages/store/StoreLayout";
 import OrderBoardPage from "./pages/store/OrderBoardPage";
 import KitchenDisplayPage from "./pages/store/KitchenDisplayPage";
 import CheckoutPage from "./pages/store/CheckoutPage";
+import CouponsPage from "./pages/store/CouponsPage";
 import ProductManagementPage from "./pages/store/ProductManagementPage";
 import ReportsPage from "./pages/store/ReportsPage";
 
@@ -31,6 +32,7 @@ export default function App() {
                 <Route index element={<OrderBoardPage />} />
                 <Route path="kitchen" element={<KitchenDisplayPage />} />
                 <Route path="checkout" element={<CheckoutPage />} />
+                <Route path="coupons" element={<CouponsPage />} />
                 <Route path="products" element={<ProductManagementPage />} />
                 <Route path="reports" element={<ReportsPage />} />
               </Route>

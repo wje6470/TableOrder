@@ -1,3 +1,5 @@
+from datetime import date
+
 from pydantic import BaseModel
 
 
@@ -10,6 +12,7 @@ class CustomerRegister(BaseModel):
     phone: str
     password: str
     name: str | None = None
+    birthday: date | None = None
 
 
 class CustomerLogin(BaseModel):

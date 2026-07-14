@@ -8,7 +8,28 @@ import { api, ApiError } from "../../lib/api";
 import { supabase } from "../../lib/supabaseClient";
 import { tableConfig } from "../../lib/table";
 import { categoryPillClass, mutedTextClass, pillInputClass, primaryButtonClass, secondaryButtonClass } from "../../lib/ui";
-import { CartLine, Category, Order, Product } from "../../types";
+import { CartLine, Category, Coupon, Order, Product } from "../../types";
+
+function couponLabel(coupon: Coupon, products: Product[]): string {
+  const discount = coupon.discount_type === "fixed" ? `折 NT$ ${coupon.discount_value}` : `${coupon.discount_value}% 折扣`;
+  const parts = [discount];
+  if (coupon.product_id) {
+    const productName = products.find((p) => p.id === coupon.product_id)?.name ?? "特定商品";
+    parts.push(`限點 ${productName}`);
+  }
+  if (coupon.valid_until) {
+    parts.push(`限 ${coupon.valid_until} 前使用`);
+  }
+  const detail = parts.join("・");
+  return coupon.title ? `${coupon.title}（${detail}）` : detail;
+}
+
+function isCouponUsable(coupon: Coupon): boolean {
+  if (coupon.is_used || coupon.order_id !== null) return false;
+  if (!coupon.valid_until) return true;
+  const today = new Date().toISOString().slice(0, 10);
+  return coupon.valid_until >= today;
+}
 
 function optionsKey(selectedOptionIds: string[]): string {
   return [...selectedOptionIds].sort().join(",");
@@ -47,12 +68,15 @@ export default function OrderingPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [selectedCouponId, setSelectedCouponId] = useState("");
 
   const tableNumber = tableConfig.get() ?? "";
 
   useEffect(() => {
     void loadMenu();
     void openOrder();
+    void loadCoupons();
   }, []);
 
   useEffect(() => {
@@ -82,6 +106,31 @@ export default function OrderingPage() {
       setOrder(current);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "無法開始點餐，請通知店員");
+    }
+  }
+
+  async function loadCoupons() {
+    const list = await api.get<Coupon[]>("/coupons/me", "customer");
+    setCoupons(list);
+  }
+
+  async function applyCoupon() {
+    if (!order || !selectedCouponId) return;
+    try {
+      await api.post(`/coupons/${selectedCouponId}/apply`, { order_id: order.id }, "customer");
+      setSelectedCouponId("");
+      await loadCoupons();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "套用優惠券失敗，請再試一次");
+    }
+  }
+
+  async function unapplyCoupon(couponId: string) {
+    try {
+      await api.post(`/coupons/${couponId}/unapply`, {}, "customer");
+      await loadCoupons();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "取消優惠券失敗，請再試一次");
     }
   }
 
@@ -132,6 +181,9 @@ export default function OrderingPage() {
   const cartItemCount = cart.reduce((count, line) => count + line.quantity, 0);
 
   const orderedTotal = order ? Number(order.total_amount) : 0;
+
+  const appliedCoupon = coupons.find((c) => c.order_id === order?.id && !c.is_used);
+  const availableCoupons = coupons.filter(isCouponUsable);
 
   async function submitCart() {
     if (!order || cart.length === 0) return;
@@ -393,6 +445,43 @@ export default function OrderingPage() {
         </div>
 
         <div className="border-t border-gray-100 p-6 dark:border-gray-700">
+          {appliedCoupon ? (
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                已套用：{couponLabel(appliedCoupon, products)}
+              </span>
+              <button
+                onClick={() => unapplyCoupon(appliedCoupon.id)}
+                className="text-xs font-medium text-red-500 dark:text-red-400"
+              >
+                取消
+              </button>
+            </div>
+          ) : (
+            availableCoupons.length > 0 && (
+              <div className="mb-3 flex items-center gap-2">
+                <select
+                  value={selectedCouponId}
+                  onChange={(e) => setSelectedCouponId(e.target.value)}
+                  className="flex-1 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                >
+                  <option value="">選擇優惠券</option>
+                  {availableCoupons.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {couponLabel(c, products)}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={applyCoupon}
+                  disabled={!selectedCouponId}
+                  className="text-xs font-medium text-orange-600 disabled:opacity-40 dark:text-orange-400"
+                >
+                  套用
+                </button>
+              </div>
+            )
+          )}
           <div className="mb-4 flex items-end justify-between border-t border-dashed border-gray-200 pt-4 dark:border-gray-700">
             <span className="font-medium text-gray-800 dark:text-gray-200">小計</span>
             <span className="text-3xl font-bold text-orange-600 dark:text-orange-400">NT$ {cartTotal}</span>
