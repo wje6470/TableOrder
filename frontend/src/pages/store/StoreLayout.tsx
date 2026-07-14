@@ -4,6 +4,7 @@ import { useStoreAuth } from "../../context/StoreAuthContext";
 
 const tabs = [
   { to: "/store", label: "即時看板", end: true },
+  { to: "/store/kitchen", label: "廚房出單" },
   { to: "/store/checkout", label: "結帳" },
   { to: "/store/products", label: "商品管理" },
   { to: "/store/reports", label: "報表分析" },

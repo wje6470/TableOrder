@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 from app.api.deps import get_current_customer, get_current_payload, get_current_store
 from app.db.session import get_db
 from app.models.customer import Customer
+from app.models.kitchen_ticket import KitchenTicket
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.order_item_option import OrderItemOption
@@ -73,6 +74,9 @@ async def add_items(
     if not payload.items:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="請至少選擇一項商品")
 
+    ticket_id = uuid.uuid4()
+    db.add(KitchenTicket(id=ticket_id, order_id=order.id))
+
     added_total = 0
     for item in payload.items:
         product = await db.get(Product, item.product_id)
@@ -117,6 +121,7 @@ async def add_items(
                 subtotal=subtotal,
                 note=note or None,
                 options=item_options,
+                ticket_id=ticket_id,
             )
         )
         added_total += subtotal

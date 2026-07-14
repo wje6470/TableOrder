@@ -8,6 +8,7 @@ import OrderHistoryPage from "./pages/customer/OrderHistoryPage";
 import StoreGate from "./pages/store/StoreGate";
 import StoreLayout from "./pages/store/StoreLayout";
 import OrderBoardPage from "./pages/store/OrderBoardPage";
+import KitchenDisplayPage from "./pages/store/KitchenDisplayPage";
 import CheckoutPage from "./pages/store/CheckoutPage";
 import ProductManagementPage from "./pages/store/ProductManagementPage";
 import ReportsPage from "./pages/store/ReportsPage";
@@ -28,6 +29,7 @@ export default function App() {
             <Route path="/store" element={<StoreGate />}>
               <Route element={<StoreLayout />}>
                 <Route index element={<OrderBoardPage />} />
+                <Route path="kitchen" element={<KitchenDisplayPage />} />
                 <Route path="checkout" element={<CheckoutPage />} />
                 <Route path="products" element={<ProductManagementPage />} />
                 <Route path="reports" element={<ReportsPage />} />

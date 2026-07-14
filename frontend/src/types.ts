@@ -44,7 +44,16 @@ export interface OrderItem {
   subtotal: string;
   note: string | null;
   options: OrderItemOption[];
+  is_completed: boolean;
   created_at: string;
+}
+
+export interface KitchenTicket {
+  id: string;
+  order_id: string;
+  table_id: string;
+  created_at: string;
+  items: OrderItem[];
 }
 
 export interface Order {

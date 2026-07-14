@@ -39,6 +39,7 @@ class OrderItemOut(BaseModel):
     subtotal: Decimal
     note: str | None
     options: list[OrderItemOptionOut] = []
+    is_completed: bool
     created_at: datetime
 
 
