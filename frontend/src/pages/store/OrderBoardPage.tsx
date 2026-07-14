@@ -62,6 +62,11 @@ export default function OrderBoardPage() {
                     <span>{item.product_name} x{item.quantity}</span>
                     <span>NT$ {item.subtotal}</span>
                   </div>
+                  {item.options.length > 0 && (
+                    <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                      {item.options.map((o) => o.option_name).join("、")}
+                    </div>
+                  )}
                   {item.note && (
                     <div className="mt-0.5 flex items-start gap-1 text-xs font-medium text-orange-600 dark:text-orange-400">
                       <StickyNote className="mt-0.5 h-3 w-3 flex-shrink-0" />

@@ -24,3 +24,6 @@ class OrderItem(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     order: Mapped["Order"] = relationship(back_populates="items")
+    options: Mapped[list["OrderItemOption"]] = relationship(
+        back_populates="order_item", cascade="all, delete-orphan", lazy="selectin"
+    )

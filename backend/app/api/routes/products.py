@@ -11,7 +11,9 @@ from app.api.deps import get_current_store
 from app.core.storage import ALLOWED_IMAGE_CONTENT_TYPES, MAX_IMAGE_BYTES, upload_product_image
 from app.db.session import get_db
 from app.models.product import Product
+from app.models.product_option import ProductOption, ProductOptionGroup
 from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
+from app.schemas.product_option import ProductOptionGroupIn, ProductOptionGroupOut
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -92,4 +94,77 @@ async def delete_product(product_id: uuid.UUID, db: AsyncSession = Depends(get_d
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="商品不存在")
     await db.delete(product)
+    await db.commit()
+
+
+async def _get_product_or_404(db: AsyncSession, product_id: uuid.UUID) -> Product:
+    product = await db.get(Product, product_id)
+    if product is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="商品不存在")
+    return product
+
+
+async def _get_option_group_or_404(db: AsyncSession, product_id: uuid.UUID, group_id: uuid.UUID) -> ProductOptionGroup:
+    group = await db.get(ProductOptionGroup, group_id)
+    if group is None or group.product_id != product_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="客製化選項群組不存在")
+    return group
+
+
+@router.post(
+    "/{product_id}/option-groups",
+    response_model=ProductOptionGroupOut,
+    dependencies=[Depends(get_current_store)],
+)
+async def create_option_group(product_id: uuid.UUID, payload: ProductOptionGroupIn, db: AsyncSession = Depends(get_db)):
+    product = await _get_product_or_404(db, product_id)
+    group = ProductOptionGroup(
+        product_id=product.id,
+        name=payload.name,
+        selection_type=payload.selection_type,
+        is_required=payload.is_required,
+        sort_order=len(product.option_groups),
+        options=[
+            ProductOption(name=option.name, price_delta=option.price_delta, sort_order=index)
+            for index, option in enumerate(payload.options)
+        ],
+    )
+    db.add(group)
+    await db.commit()
+    await db.refresh(group)
+    return group
+
+
+@router.put(
+    "/{product_id}/option-groups/{group_id}",
+    response_model=ProductOptionGroupOut,
+    dependencies=[Depends(get_current_store)],
+)
+async def update_option_group(
+    product_id: uuid.UUID,
+    group_id: uuid.UUID,
+    payload: ProductOptionGroupIn,
+    db: AsyncSession = Depends(get_db),
+):
+    group = await _get_option_group_or_404(db, product_id, group_id)
+    group.name = payload.name
+    group.selection_type = payload.selection_type
+    group.is_required = payload.is_required
+    group.options = [
+        ProductOption(name=option.name, price_delta=option.price_delta, sort_order=index)
+        for index, option in enumerate(payload.options)
+    ]
+    await db.commit()
+    await db.refresh(group)
+    return group
+
+
+@router.delete(
+    "/{product_id}/option-groups/{group_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_current_store)],
+)
+async def delete_option_group(product_id: uuid.UUID, group_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    group = await _get_option_group_or_404(db, product_id, group_id)
+    await db.delete(group)
     await db.commit()

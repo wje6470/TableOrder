@@ -4,6 +4,20 @@ export interface Category {
   sort_order: number;
 }
 
+export interface ProductOption {
+  id: string;
+  name: string;
+  price_delta: string;
+}
+
+export interface ProductOptionGroup {
+  id: string;
+  name: string;
+  selection_type: "single" | "multi";
+  is_required: boolean;
+  options: ProductOption[];
+}
+
 export interface Product {
   id: string;
   category_id: string | null;
@@ -12,6 +26,13 @@ export interface Product {
   price: string;
   image_url: string | null;
   is_available: boolean;
+  option_groups: ProductOptionGroup[];
+}
+
+export interface OrderItemOption {
+  group_name: string;
+  option_name: string;
+  price_delta: string;
 }
 
 export interface OrderItem {
@@ -22,6 +43,7 @@ export interface OrderItem {
   unit_price: string;
   subtotal: string;
   note: string | null;
+  options: OrderItemOption[];
   created_at: string;
 }
 
@@ -42,4 +64,5 @@ export interface CartLine {
   product: Product;
   quantity: number;
   note: string;
+  selectedOptionIds: string[];
 }

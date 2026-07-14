@@ -3,8 +3,10 @@ from app.models.store_account import StoreAccount
 from app.models.table import Table
 from app.models.category import Category
 from app.models.product import Product
+from app.models.product_option import ProductOptionGroup, ProductOption
 from app.models.order import Order
 from app.models.order_item import OrderItem
+from app.models.order_item_option import OrderItemOption
 
 __all__ = [
     "Customer",
@@ -12,6 +14,9 @@ __all__ = [
     "Table",
     "Category",
     "Product",
+    "ProductOptionGroup",
+    "ProductOption",
     "Order",
     "OrderItem",
+    "OrderItemOption",
 ]

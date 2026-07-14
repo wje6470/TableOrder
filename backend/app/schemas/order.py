@@ -13,10 +13,19 @@ class OrderItemIn(BaseModel):
     product_id: uuid.UUID
     quantity: int
     note: str | None = Field(default=None, max_length=200)
+    selected_option_ids: list[uuid.UUID] = []
 
 
 class AddItemsRequest(BaseModel):
     items: list[OrderItemIn]
+
+
+class OrderItemOptionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    group_name: str
+    option_name: str
+    price_delta: Decimal
 
 
 class OrderItemOut(BaseModel):
@@ -29,6 +38,7 @@ class OrderItemOut(BaseModel):
     unit_price: Decimal
     subtotal: Decimal
     note: str | None
+    options: list[OrderItemOptionOut] = []
     created_at: datetime
 
 

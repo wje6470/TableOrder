@@ -1,6 +1,7 @@
 import { ChevronRight, Minus, Plus, Search, ShoppingCart, StickyNote, Trash2, UtensilsCrossed } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import ProductOptionsModal from "../../components/ProductOptionsModal";
 import ThemeToggle from "../../components/ThemeToggle";
 import { useCustomerAuth } from "../../context/CustomerAuthContext";
 import { api, ApiError } from "../../lib/api";
@@ -8,6 +9,31 @@ import { supabase } from "../../lib/supabaseClient";
 import { tableConfig } from "../../lib/table";
 import { categoryPillClass, mutedTextClass, pillInputClass, primaryButtonClass, secondaryButtonClass } from "../../lib/ui";
 import { CartLine, Category, Order, Product } from "../../types";
+
+function optionsKey(selectedOptionIds: string[]): string {
+  return [...selectedOptionIds].sort().join(",");
+}
+
+function lineKey(line: CartLine): string {
+  return `${line.product.id}::${optionsKey(line.selectedOptionIds)}`;
+}
+
+function lineUnitPrice(line: CartLine): number {
+  const options = line.product.option_groups.flatMap((group) => group.options);
+  const optionsTotal = line.selectedOptionIds.reduce((sum, id) => {
+    const option = options.find((o) => o.id === id);
+    return sum + (option ? Number(option.price_delta) : 0);
+  }, 0);
+  return Number(line.product.price) + optionsTotal;
+}
+
+function lineOptionNames(line: CartLine): string {
+  return line.product.option_groups
+    .flatMap((group) => group.options)
+    .filter((option) => line.selectedOptionIds.includes(option.id))
+    .map((option) => option.name)
+    .join("、");
+}
 
 export default function OrderingPage() {
   const { logout } = useCustomerAuth();
@@ -20,6 +46,7 @@ export default function OrderingPage() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
 
   const tableNumber = tableConfig.get() ?? "";
 
@@ -58,32 +85,42 @@ export default function OrderingPage() {
     }
   }
 
-  function addToCart(product: Product) {
+  function addLineToCart(product: Product, selectedOptionIds: string[]) {
+    const key = optionsKey(selectedOptionIds);
     setCart((prev) => {
-      const existing = prev.find((line) => line.product.id === product.id);
+      const existing = prev.find((line) => line.product.id === product.id && optionsKey(line.selectedOptionIds) === key);
       if (existing) {
-        return prev.map((line) =>
-          line.product.id === product.id ? { ...line, quantity: line.quantity + 1 } : line
-        );
+        return prev.map((line) => (line === existing ? { ...line, quantity: line.quantity + 1 } : line));
       }
-      return [...prev, { product, quantity: 1, note: "" }];
+      return [...prev, { product, quantity: 1, note: "", selectedOptionIds }];
     });
   }
 
-  function changeQuantity(productId: string, delta: number) {
+  function addToCart(product: Product) {
+    if (product.option_groups.length > 0) {
+      setCustomizingProduct(product);
+      return;
+    }
+    addLineToCart(product, []);
+  }
+
+  function confirmCustomization(selectedOptionIds: string[]) {
+    if (customizingProduct) addLineToCart(customizingProduct, selectedOptionIds);
+    setCustomizingProduct(null);
+  }
+
+  function changeQuantity(key: string, delta: number) {
     setCart((prev) =>
-      prev
-        .map((line) => (line.product.id === productId ? { ...line, quantity: line.quantity + delta } : line))
-        .filter((line) => line.quantity > 0)
+      prev.map((line) => (lineKey(line) === key ? { ...line, quantity: line.quantity + delta } : line)).filter((line) => line.quantity > 0)
     );
   }
 
-  function updateNote(productId: string, note: string) {
-    setCart((prev) => prev.map((line) => (line.product.id === productId ? { ...line, note } : line)));
+  function updateNote(key: string, note: string) {
+    setCart((prev) => prev.map((line) => (lineKey(line) === key ? { ...line, note } : line)));
   }
 
-  function removeFromCart(productId: string) {
-    setCart((prev) => prev.filter((line) => line.product.id !== productId));
+  function removeFromCart(key: string) {
+    setCart((prev) => prev.filter((line) => lineKey(line) !== key));
   }
 
   const filteredProducts = useMemo(() => {
@@ -95,7 +132,7 @@ export default function OrderingPage() {
   }, [products, activeCategory, searchQuery]);
 
   const cartTotal = useMemo(
-    () => cart.reduce((sum, line) => sum + Number(line.product.price) * line.quantity, 0),
+    () => cart.reduce((sum, line) => sum + lineUnitPrice(line) * line.quantity, 0),
     [cart]
   );
   const cartItemCount = cart.reduce((count, line) => count + line.quantity, 0);
@@ -114,6 +151,7 @@ export default function OrderingPage() {
             product_id: line.product.id,
             quantity: line.quantity,
             note: line.note.trim() || undefined,
+            selected_option_ids: line.selectedOptionIds,
           })),
         },
         "customer"
@@ -284,73 +322,83 @@ export default function OrderingPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {cart.map((line) => (
-                <div
-                  key={line.product.id}
-                  className="group relative flex rounded-xl border border-gray-100 bg-gray-50/50 p-3 dark:border-gray-700 dark:bg-gray-900/50"
-                >
-                  {line.product.image_url ? (
-                    <img
-                      src={line.product.image_url}
-                      alt={line.product.name}
-                      className="h-16 w-16 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-gray-100 text-[10px] text-gray-400 dark:bg-gray-800 dark:text-gray-500">
-                      無圖片
-                    </div>
-                  )}
-                  <div className="ml-4 flex flex-1 flex-col justify-between">
-                    <div>
-                      <h4 className="line-clamp-1 font-semibold text-gray-800 dark:text-gray-100">
-                        {line.product.name}
-                      </h4>
-                      <p className="mt-1 text-sm font-bold text-orange-500 dark:text-orange-400">
-                        NT$ {line.product.price}
-                      </p>
-                    </div>
-                    <div className="mt-2 flex items-center gap-1.5">
-                      <StickyNote className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
-                      <input
-                        type="text"
-                        value={line.note}
-                        onChange={(e) => updateNote(line.product.id, e.target.value)}
-                        placeholder="備註（例如：少冰、不要辣）"
-                        maxLength={200}
-                        className="w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 placeholder-gray-400 transition focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/10 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500"
-                      />
-                    </div>
-                    <div className="mt-2 flex items-center justify-between">
-                      <div className="flex items-center rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
-                        <button
-                          onClick={() => changeQuantity(line.product.id, -1)}
-                          className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-gray-600 shadow-sm transition-colors hover:text-orange-500 dark:bg-gray-800 dark:text-gray-200"
-                        >
-                          <Minus className="h-3 w-3" />
-                        </button>
-                        <span className="w-8 text-center text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {line.quantity}
-                        </span>
-                        <button
-                          onClick={() => changeQuantity(line.product.id, 1)}
-                          className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-gray-600 shadow-sm transition-colors hover:text-orange-500 dark:bg-gray-800 dark:text-gray-200"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </button>
-                      </div>
-                      <div className="font-bold text-gray-800 dark:text-gray-100">
-                        NT$ {Number(line.product.price) * line.quantity}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => removeFromCart(line.product.id)}
-                    className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 opacity-0 shadow-sm transition-opacity hover:text-red-500 group-hover:opacity-100 dark:border-gray-600 dark:bg-gray-800"
+              {cart.map((line) => {
+                const key = lineKey(line);
+                const unitPrice = lineUnitPrice(line);
+                const optionNames = lineOptionNames(line);
+                return (
+                  <div
+                    key={key}
+                    className="group relative flex rounded-xl border border-gray-100 bg-gray-50/50 p-3 dark:border-gray-700 dark:bg-gray-900/50"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
+                    {line.product.image_url ? (
+                      <img
+                        src={line.product.image_url}
+                        alt={line.product.name}
+                        className="h-16 w-16 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-gray-100 text-[10px] text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                        無圖片
+                      </div>
+                    )}
+                    <div className="ml-4 flex flex-1 flex-col justify-between">
+                      <div>
+                        <h4 className="line-clamp-1 font-semibold text-gray-800 dark:text-gray-100">
+                          {line.product.name}
+                        </h4>
+                        {optionNames && (
+                          <p className="mt-0.5 line-clamp-1 text-xs text-gray-500 dark:text-gray-400">
+                            {optionNames}
+                          </p>
+                        )}
+                        <p className="mt-1 text-sm font-bold text-orange-500 dark:text-orange-400">
+                          NT$ {unitPrice}
+                        </p>
+                      </div>
+                      <div className="mt-2 flex items-center gap-1.5">
+                        <StickyNote className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
+                        <input
+                          type="text"
+                          value={line.note}
+                          onChange={(e) => updateNote(key, e.target.value)}
+                          placeholder="備註（例如：少冰、不要辣）"
+                          maxLength={200}
+                          className="w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 placeholder-gray-400 transition focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/10 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500"
+                        />
+                      </div>
+                      <div className="mt-2 flex items-center justify-between">
+                        <div className="flex items-center rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
+                          <button
+                            onClick={() => changeQuantity(key, -1)}
+                            className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-gray-600 shadow-sm transition-colors hover:text-orange-500 dark:bg-gray-800 dark:text-gray-200"
+                          >
+                            <Minus className="h-3 w-3" />
+                          </button>
+                          <span className="w-8 text-center text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {line.quantity}
+                          </span>
+                          <button
+                            onClick={() => changeQuantity(key, 1)}
+                            className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-gray-600 shadow-sm transition-colors hover:text-orange-500 dark:bg-gray-800 dark:text-gray-200"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </button>
+                        </div>
+                        <div className="font-bold text-gray-800 dark:text-gray-100">
+                          NT$ {unitPrice * line.quantity}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => removeFromCart(key)}
+                      className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 opacity-0 shadow-sm transition-opacity hover:text-red-500 group-hover:opacity-100 dark:border-gray-600 dark:bg-gray-800"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -370,6 +418,14 @@ export default function OrderingPage() {
           </button>
         </div>
       </aside>
+
+      {customizingProduct && (
+        <ProductOptionsModal
+          product={customizingProduct}
+          onConfirm={confirmCustomization}
+          onClose={() => setCustomizingProduct(null)}
+        />
+      )}
     </div>
   );
 }

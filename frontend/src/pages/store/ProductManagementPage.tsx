@@ -1,4 +1,5 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import ProductOptionsEditor from "../../components/store/ProductOptionsEditor";
 import { api, ApiError } from "../../lib/api";
 import { cardClass, mutedTextClass, primaryButtonClass } from "../../lib/ui";
 import { Category, Product } from "../../types";
@@ -14,7 +15,9 @@ export default function ProductManagementPage() {
   const [newProductImage, setNewProductImage] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploadingProductId, setUploadingProductId] = useState<string | null>(null);
+  const [managingProductId, setManagingProductId] = useState<string | null>(null);
   const newImageInputRef = useRef<HTMLInputElement>(null);
+  const managingProduct = products.find((p) => p.id === managingProductId) ?? null;
 
   useEffect(() => {
     void refresh();
@@ -241,6 +244,12 @@ export default function ProductManagementPage() {
                   {product.is_available ? "上架中" : "已售完"}
                 </button>
                 <button
+                  className="text-xs font-medium text-orange-600 dark:text-orange-400"
+                  onClick={() => setManagingProductId(product.id)}
+                >
+                  客製化選項
+                </button>
+                <button
                   className="text-sm font-medium text-red-500 dark:text-red-400"
                   onClick={() => deleteProduct(product.id)}
                 >
@@ -251,6 +260,14 @@ export default function ProductManagementPage() {
           ))}
         </div>
       </section>
+
+      {managingProduct && (
+        <ProductOptionsEditor
+          product={managingProduct}
+          onClose={() => setManagingProductId(null)}
+          onChanged={refresh}
+        />
+      )}
     </div>
   );
 }

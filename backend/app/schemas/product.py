@@ -3,6 +3,8 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.product_option import ProductOptionGroupOut
+
 
 class ProductCreate(BaseModel):
     category_id: uuid.UUID | None = None
@@ -32,3 +34,4 @@ class ProductOut(BaseModel):
     price: Decimal
     image_url: str | None
     is_available: bool
+    option_groups: list[ProductOptionGroupOut] = []

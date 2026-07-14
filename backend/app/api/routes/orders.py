@@ -12,6 +12,7 @@ from app.db.session import get_db
 from app.models.customer import Customer
 from app.models.order import Order
 from app.models.order_item import OrderItem
+from app.models.order_item_option import OrderItemOption
 from app.models.product import Product
 from app.models.store_account import StoreAccount
 from app.models.table import Table
@@ -79,7 +80,32 @@ async def add_items(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="商品不存在")
         if not product.is_available:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"「{product.name}」已售完")
-        subtotal = product.price * item.quantity
+
+        selected_ids = set(item.selected_option_ids)
+        known_option_ids = {option.id for group in product.option_groups for option in group.options}
+        if not selected_ids <= known_option_ids:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"「{product.name}」的客製化選項無效")
+
+        price_delta_total = Decimal("0")
+        item_options: list[OrderItemOption] = []
+        for group in product.option_groups:
+            chosen = [option for option in group.options if option.id in selected_ids]
+            if group.selection_type == "single" and len(chosen) > 1:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail=f"「{group.name}」只能選擇一項"
+                )
+            if group.is_required and len(chosen) == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail=f"請選擇「{product.name}」的「{group.name}」"
+                )
+            for option in chosen:
+                price_delta_total += option.price_delta
+                item_options.append(
+                    OrderItemOption(group_name=group.name, option_name=option.name, price_delta=option.price_delta)
+                )
+
+        unit_price = product.price + price_delta_total
+        subtotal = unit_price * item.quantity
         note = item.note.strip() if item.note else None
         db.add(
             OrderItem(
@@ -87,9 +113,10 @@ async def add_items(
                 product_id=product.id,
                 product_name=product.name,
                 quantity=item.quantity,
-                unit_price=product.price,
+                unit_price=unit_price,
                 subtotal=subtotal,
                 note=note or None,
+                options=item_options,
             )
         )
         added_total += subtotal
