@@ -15,7 +15,7 @@ function optionsKey(selectedOptionIds: string[]): string {
 }
 
 function lineKey(line: CartLine): string {
-  return `${line.product.id}::${optionsKey(line.selectedOptionIds)}`;
+  return `${line.product.id}::${optionsKey(line.selectedOptionIds)}::${line.note}`;
 }
 
 function lineUnitPrice(line: CartLine): number {
@@ -85,27 +85,25 @@ export default function OrderingPage() {
     }
   }
 
-  function addLineToCart(product: Product, selectedOptionIds: string[]) {
-    const key = optionsKey(selectedOptionIds);
+  function addLineToCart(product: Product, selectedOptionIds: string[], note: string) {
+    const key = `${optionsKey(selectedOptionIds)}::${note}`;
     setCart((prev) => {
-      const existing = prev.find((line) => line.product.id === product.id && optionsKey(line.selectedOptionIds) === key);
+      const existing = prev.find(
+        (line) => line.product.id === product.id && `${optionsKey(line.selectedOptionIds)}::${line.note}` === key
+      );
       if (existing) {
         return prev.map((line) => (line === existing ? { ...line, quantity: line.quantity + 1 } : line));
       }
-      return [...prev, { product, quantity: 1, note: "", selectedOptionIds }];
+      return [...prev, { product, quantity: 1, note, selectedOptionIds }];
     });
   }
 
   function addToCart(product: Product) {
-    if (product.option_groups.length > 0) {
-      setCustomizingProduct(product);
-      return;
-    }
-    addLineToCart(product, []);
+    setCustomizingProduct(product);
   }
 
-  function confirmCustomization(selectedOptionIds: string[]) {
-    if (customizingProduct) addLineToCart(customizingProduct, selectedOptionIds);
+  function confirmCustomization(selectedOptionIds: string[], note: string) {
+    if (customizingProduct) addLineToCart(customizingProduct, selectedOptionIds, note);
     setCustomizingProduct(null);
   }
 
@@ -113,10 +111,6 @@ export default function OrderingPage() {
     setCart((prev) =>
       prev.map((line) => (lineKey(line) === key ? { ...line, quantity: line.quantity + delta } : line)).filter((line) => line.quantity > 0)
     );
-  }
-
-  function updateNote(key: string, note: string) {
-    setCart((prev) => prev.map((line) => (lineKey(line) === key ? { ...line, note } : line)));
   }
 
   function removeFromCart(key: string) {
@@ -355,17 +349,12 @@ export default function OrderingPage() {
                         <p className="mt-1 text-sm font-bold text-orange-500 dark:text-orange-400">
                           NT$ {unitPrice}
                         </p>
-                      </div>
-                      <div className="mt-2 flex items-center gap-1.5">
-                        <StickyNote className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
-                        <input
-                          type="text"
-                          value={line.note}
-                          onChange={(e) => updateNote(key, e.target.value)}
-                          placeholder="備註（例如：少冰、不要辣）"
-                          maxLength={200}
-                          className="w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 placeholder-gray-400 transition focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/10 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500"
-                        />
+                        {line.note && (
+                          <div className="mt-1 flex items-start gap-1 text-xs text-gray-500 dark:text-gray-400">
+                            <StickyNote className="mt-0.5 h-3 w-3 flex-shrink-0" />
+                            <span className="line-clamp-2">{line.note}</span>
+                          </div>
+                        )}
                       </div>
                       <div className="mt-2 flex items-center justify-between">
                         <div className="flex items-center rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
