@@ -96,7 +96,7 @@ curl -X POST http://localhost:8000/tables \
 
 `store_token` 可從 `POST /auth/store/login` 取得。
 
-## 已知限制（之後會補）
+## 已知限制
 
 - 店家後台還沒有「新增桌台」的介面，需直接呼叫 API。
-- 尚未實作：會員點數／生日禮、呼叫服務生、優惠券、線上金流、多店家 SaaS、店家多角色權限。
+- 尚未實作：呼叫服務生、線上金流、多店家 SaaS、店家多角色權限。
