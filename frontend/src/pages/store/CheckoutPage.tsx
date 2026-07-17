@@ -16,7 +16,7 @@ export default function CheckoutPage() {
   const [tables, setTables] = useState<TableInfo[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "linepay">("cash");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "linepay" | "paypal">("cash");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -54,12 +54,12 @@ export default function CheckoutPage() {
     setShowScanner(false);
   }
 
-  async function confirmCashCheckout() {
+  async function confirmDirectCheckout(method: "cash" | "paypal") {
     if (!selectedOrder) return;
     setSubmitting(true);
     setError(null);
     try {
-      await api.post(`/orders/${selectedOrder.id}/checkout`, { payment_method: "cash" }, "store");
+      await api.post(`/orders/${selectedOrder.id}/checkout`, { payment_method: method }, "store");
       setSelectedId(null);
       await refresh();
     } catch (err) {
@@ -178,14 +178,22 @@ export default function CheckoutPage() {
                 LINE Pay
               </button>
               <button
-                type="button"
-                disabled
-                title="尚未申請 PayPal 商家帳號，之後補上"
-                className="cursor-not-allowed rounded-xl border border-dashed border-gray-200 px-4 py-2 text-sm font-medium text-gray-400 dark:border-gray-700 dark:text-gray-500"
+                onClick={() => setPaymentMethod("paypal")}
+                className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+                  paymentMethod === "paypal"
+                    ? "bg-orange-500 text-white"
+                    : "border border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700/50"
+                }`}
               >
-                PayPal（尚未開放）
+                PayPal（刷卡機）
               </button>
             </div>
+
+            {paymentMethod === "paypal" && (
+              <p className="mb-3 text-xs text-gray-400 dark:text-gray-500">
+                請將無線刷卡機交給顧客感應／插卡，刷卡機上完成付款後再按下方確認
+              </p>
+            )}
 
             {error && <p className="mb-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
@@ -194,11 +202,13 @@ export default function CheckoutPage() {
             ) : null}
 
             <button
-              onClick={paymentMethod === "cash" ? confirmCashCheckout : () => setShowScanner(true)}
+              onClick={
+                paymentMethod === "linepay" ? () => setShowScanner(true) : () => confirmDirectCheckout(paymentMethod)
+              }
               disabled={submitting}
               className={primaryButtonClass}
             >
-              {paymentMethod === "cash" ? "確認結帳" : "掃描顧客付款碼"}
+              {paymentMethod === "cash" ? "確認結帳" : paymentMethod === "paypal" ? "確認已刷卡收款" : "掃描顧客付款碼"}
             </button>
           </div>
         ) : (

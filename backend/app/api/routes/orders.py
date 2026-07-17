@@ -253,10 +253,10 @@ async def checkout_order(
     _: StoreAccount = Depends(get_current_store),
     db: AsyncSession = Depends(get_db),
 ):
-    if payload.payment_method != "cash":
+    if payload.payment_method not in ("cash", "paypal"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="此端點僅支援現金結帳，LINE Pay 請走 /orders/{order_id}/payments/linepay/request",
+            detail="此端點僅支援現金或 PayPal（刷卡機獨立收款）結帳，LINE Pay 請走 /orders/{order_id}/payments/linepay/request",
         )
 
     order = await _get_order_with_items(db, order_id)

@@ -99,5 +99,5 @@ curl -X POST http://localhost:8000/tables \
 ## 已知限制
 
 - 店家後台還沒有「新增桌台」的介面，需直接呼叫 API。
-- 線上金流：LINE Pay 已串接（測試用 Sandbox Channel，見 `backend/.env` 的 `LINE_PAY_*`），PayPal 按鈕已預留但尚未串接後端。
+- 金流：LINE Pay 已串接（測試用 Sandbox Channel，見 `backend/.env` 的 `LINE_PAY_*`）；PayPal 走的是實體刷卡機獨立收款（刷卡機跟平板軟體沒有串接，店員在刷卡機上完成收款後，於結帳頁按「確認已刷卡收款」直接記錄，不呼叫 PayPal API）。
 - 尚未實作：呼叫服務生、多店家 SaaS、店家多角色權限。
