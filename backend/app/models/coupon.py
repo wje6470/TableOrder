@@ -21,6 +21,9 @@ class Coupon(Base):
     product_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("products.id", ondelete="SET NULL"), nullable=True
     )
+    rule_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("coupon_rules.id", ondelete="SET NULL"), nullable=True
+    )
     title: Mapped[str | None] = mapped_column(String, nullable=True)
     discount_type: Mapped[str] = mapped_column(String, nullable=False)
     discount_value: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)

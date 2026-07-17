@@ -1,5 +1,5 @@
 import uuid
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
@@ -9,17 +9,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_customer, get_current_store
 from app.core.config import settings
 from app.db.session import get_db
-from app.models.birthday_coupon_rule import BirthdayCouponRule
 from app.models.coupon import Coupon
+from app.models.coupon_rule import CouponRule
 from app.models.customer import Customer
 from app.models.order import Order
 from app.models.product import Product
 from app.schemas.coupon import (
-    BirthdayCouponRuleIn,
-    BirthdayCouponRuleOut,
     CouponApplyRequest,
-    CouponBulkCreate,
     CouponOut,
+    CouponRuleIn,
+    CouponRuleOut,
+    CouponRuleUpdate,
 )
 
 router = APIRouter(prefix="/coupons", tags=["coupons"])
@@ -30,26 +30,94 @@ def _validate_discount(discount_type: str, discount_value: Decimal) -> None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="百分比折扣不可超過 100")
 
 
-@router.post("/bulk", dependencies=[Depends(get_current_store)])
-async def bulk_create_coupons(payload: CouponBulkCreate, db: AsyncSession = Depends(get_db)):
-    _validate_discount(payload.discount_type, payload.discount_value)
+async def _distribute_rule(db: AsyncSession, rule: CouponRule) -> int:
+    """把生效中的方案發給符合資格、還沒領過這個方案的顧客，回傳這次發出的張數。
 
-    customer_ids = (await db.scalars(select(Customer.id))).all()
-    today = date.today()
+    生日方案：本月生日、今年還沒領過這個方案的顧客。
+    一般方案：所有還沒領過這個方案的顧客（新註冊的顧客之後跑到也會補發）。
+    """
+    if rule.rule_type == "birthday":
+        today = datetime.now(timezone.utc)
+        already_issued = select(Coupon.customer_id).where(
+            Coupon.rule_id == rule.id, extract("year", Coupon.created_at) == today.year
+        )
+        eligible = await db.scalars(
+            select(Customer.id).where(
+                extract("month", Customer.birthday) == today.month,
+                Customer.id.notin_(already_issued),
+            )
+        )
+    else:
+        already_issued = select(Coupon.customer_id).where(Coupon.rule_id == rule.id)
+        eligible = await db.scalars(select(Customer.id).where(Customer.id.notin_(already_issued)))
+
+    customer_ids = eligible.all()
     for customer_id in customer_ids:
         db.add(
             Coupon(
                 customer_id=customer_id,
-                title=payload.title,
-                discount_type=payload.discount_type,
-                discount_value=payload.discount_value,
-                product_id=payload.product_id,
-                valid_until=today,
-                source="bulk",
+                rule_id=rule.id,
+                title=rule.title,
+                discount_type=rule.discount_type,
+                discount_value=rule.discount_value,
+                product_id=rule.product_id,
+                source=rule.rule_type,
             )
         )
+    if customer_ids:
+        await db.commit()
+    return len(customer_ids)
+
+
+@router.get("/rules", response_model=list[CouponRuleOut], dependencies=[Depends(get_current_store)])
+async def list_coupon_rules(db: AsyncSession = Depends(get_db)):
+    result = await db.scalars(select(CouponRule).order_by(CouponRule.created_at.desc()))
+    return result.all()
+
+
+@router.post("/rules", response_model=CouponRuleOut, dependencies=[Depends(get_current_store)])
+async def create_coupon_rule(payload: CouponRuleIn, db: AsyncSession = Depends(get_db)):
+    if payload.product_id is not None:
+        product = await db.get(Product, payload.product_id)
+        if product is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="商品不存在")
+    _validate_discount(payload.discount_type, payload.discount_value)
+
+    rule = CouponRule(**payload.model_dump())
+    db.add(rule)
     await db.commit()
-    return {"issued_count": len(customer_ids)}
+    await db.refresh(rule)
+
+    if rule.is_enabled:
+        await _distribute_rule(db, rule)
+    return rule
+
+
+@router.patch("/rules/{rule_id}", response_model=CouponRuleOut, dependencies=[Depends(get_current_store)])
+async def update_coupon_rule(
+    rule_id: uuid.UUID, payload: CouponRuleUpdate, db: AsyncSession = Depends(get_db)
+):
+    rule = await db.get(CouponRule, rule_id)
+    if rule is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="優惠券方案不存在")
+
+    turning_on = payload.is_enabled and not rule.is_enabled
+    rule.is_enabled = payload.is_enabled
+    await db.commit()
+    await db.refresh(rule)
+
+    if turning_on:
+        await _distribute_rule(db, rule)
+    return rule
+
+
+@router.delete("/rules/{rule_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(get_current_store)])
+async def delete_coupon_rule(rule_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    rule = await db.get(CouponRule, rule_id)
+    if rule is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="優惠券方案不存在")
+    await db.delete(rule)
+    await db.commit()
 
 
 @router.get("", response_model=list[CouponOut], dependencies=[Depends(get_current_store)])
@@ -122,70 +190,18 @@ async def unapply_coupon(
     return coupon
 
 
-@router.get(
-    "/birthday-rule", response_model=BirthdayCouponRuleOut | None, dependencies=[Depends(get_current_store)]
-)
-async def get_birthday_rule(db: AsyncSession = Depends(get_db)):
-    return await db.scalar(select(BirthdayCouponRule).order_by(BirthdayCouponRule.created_at.desc()))
-
-
-@router.put("/birthday-rule", response_model=BirthdayCouponRuleOut, dependencies=[Depends(get_current_store)])
-async def set_birthday_rule(payload: BirthdayCouponRuleIn, db: AsyncSession = Depends(get_db)):
-    product = await db.get(Product, payload.product_id)
-    if product is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="商品不存在")
-    _validate_discount(payload.discount_type, payload.discount_value)
-
-    rule = await db.scalar(select(BirthdayCouponRule).order_by(BirthdayCouponRule.created_at.desc()))
-    if rule is None:
-        rule = BirthdayCouponRule(**payload.model_dump())
-        db.add(rule)
-    else:
-        for field, value in payload.model_dump().items():
-            setattr(rule, field, value)
-    await db.commit()
-    await db.refresh(rule)
-    return rule
-
-
-@router.get("/birthday-cron")
-async def run_birthday_cron(
+@router.get("/distribute-cron")
+async def run_distribute_cron(
     db: AsyncSession = Depends(get_db),
     authorization: str = Header(default=""),
 ):
+    """給 Vercel Cron 每天呼叫一次：把所有生效中的方案發給符合資格、還沒領過的顧客。"""
     expected = f"Bearer {settings.cron_secret}"
     if not settings.cron_secret or authorization != expected:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="未授權")
 
-    rule = await db.scalar(
-        select(BirthdayCouponRule).where(BirthdayCouponRule.is_enabled.is_(True)).order_by(
-            BirthdayCouponRule.created_at.desc()
-        )
-    )
-    if rule is None:
-        return {"issued_count": 0}
-
-    today = datetime.now(timezone.utc)
-    already_issued = select(Coupon.customer_id).where(
-        Coupon.source == "birthday", extract("year", Coupon.created_at) == today.year
-    )
-    eligible_customers = await db.scalars(
-        select(Customer.id).where(
-            extract("month", Customer.birthday) == today.month,
-            Customer.id.notin_(already_issued),
-        )
-    )
-    customer_ids = eligible_customers.all()
-    for customer_id in customer_ids:
-        db.add(
-            Coupon(
-                customer_id=customer_id,
-                title=rule.title,
-                discount_type=rule.discount_type,
-                discount_value=rule.discount_value,
-                product_id=rule.product_id,
-                source="birthday",
-            )
-        )
-    await db.commit()
-    return {"issued_count": len(customer_ids)}
+    rules = await db.scalars(select(CouponRule).where(CouponRule.is_enabled.is_(True)))
+    total = 0
+    for rule in rules.all():
+        total += await _distribute_rule(db, rule)
+    return {"issued_count": total}

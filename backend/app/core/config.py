@@ -15,7 +15,9 @@ class Settings(BaseSettings):
     line_pay_env: str = "sandbox"
     backend_base_url: str = "http://localhost:8000"
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    # extra="ignore"：.env 裡可能會有還沒正式串接、只是先暫存的設定（例如 PayPal 相關變數），
+    # 不希望這種還沒用到的欄位讓整個後端啟動失敗。
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     @property
     def line_pay_api_base(self) -> str:

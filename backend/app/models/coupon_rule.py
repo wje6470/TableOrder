@@ -8,12 +8,13 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.session import Base
 
 
-class BirthdayCouponRule(Base):
-    __tablename__ = "birthday_coupon_rules"
+class CouponRule(Base):
+    __tablename__ = "coupon_rules"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    product_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("products.id", ondelete="CASCADE"), nullable=False
+    rule_type: Mapped[str] = mapped_column(String, nullable=False, default="birthday")
+    product_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("products.id", ondelete="CASCADE"), nullable=True
     )
     discount_type: Mapped[str] = mapped_column(String, nullable=False)
     discount_value: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)

@@ -9,7 +9,7 @@ from app.models.kitchen_ticket import KitchenTicket
 from app.models.order_item import OrderItem
 from app.models.order_item_option import OrderItemOption
 from app.models.coupon import Coupon
-from app.models.birthday_coupon_rule import BirthdayCouponRule
+from app.models.coupon_rule import CouponRule
 from app.models.payment_transaction import PaymentTransaction
 
 __all__ = [
@@ -25,6 +25,6 @@ __all__ = [
     "OrderItem",
     "OrderItemOption",
     "Coupon",
-    "BirthdayCouponRule",
+    "CouponRule",
     "PaymentTransaction",
 ]

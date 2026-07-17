@@ -79,15 +79,16 @@ export interface Coupon {
   discount_type: "fixed" | "percentage";
   discount_value: string;
   valid_until: string | null;
-  source: "manual" | "bulk" | "birthday";
+  source: "manual" | "bulk" | "birthday" | "general";
   is_used: boolean;
   used_at: string | null;
   created_at: string;
 }
 
-export interface BirthdayCouponRule {
+export interface CouponRule {
   id: string;
-  product_id: string;
+  rule_type: "birthday" | "general";
+  product_id: string | null;
   discount_type: "fixed" | "percentage";
   discount_value: string;
   title: string | null;
