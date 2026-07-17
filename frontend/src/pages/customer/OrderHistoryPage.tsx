@@ -56,7 +56,14 @@ export default function OrderHistoryPage() {
                 {expanded && (
                   <div className="border-t border-gray-100 px-5 pb-5 dark:border-gray-700">
                     <div className={`mt-3 text-sm ${mutedTextClass}`}>
-                      付款方式：{order.payment_method === "cash" ? "現金" : "其他"}
+                      付款方式：
+                      {order.payment_method === "cash"
+                        ? "現金"
+                        : order.payment_method === "linepay"
+                          ? "LINE Pay"
+                          : order.payment_method === "paypal"
+                            ? "PayPal"
+                            : "其他"}
                     </div>
                     <ul className="mt-2 space-y-1.5 text-sm text-gray-800 dark:text-gray-200">
                       {order.items.map((item) => (

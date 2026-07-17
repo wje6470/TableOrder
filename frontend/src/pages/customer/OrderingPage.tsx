@@ -1,6 +1,7 @@
-import { ChevronRight, Minus, Plus, Search, ShoppingCart, StickyNote, Trash2, UtensilsCrossed } from "lucide-react";
+import { ChevronRight, Minus, Plus, Receipt, Search, ShoppingCart, StickyNote, Trash2, UtensilsCrossed } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import OrderSummaryModal from "../../components/OrderSummaryModal";
 import ProductOptionsModal from "../../components/ProductOptionsModal";
 import ThemeToggle from "../../components/ThemeToggle";
 import { useCustomerAuth } from "../../context/CustomerAuthContext";
@@ -70,6 +71,7 @@ export default function OrderingPage() {
   const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [selectedCouponId, setSelectedCouponId] = useState("");
+  const [showSummary, setShowSummary] = useState(false);
 
   const tableNumber = tableConfig.get() ?? "";
 
@@ -349,12 +351,21 @@ export default function OrderingPage() {
               {cartItemCount} 項
             </span>
           </div>
-          <button
-            className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
-            onClick={() => setIsCartOpen(false)}
-          >
-            <ChevronRight className="h-6 w-6" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
+              onClick={() => setShowSummary(true)}
+              title="本次消費（尚未結帳）"
+            >
+              <Receipt className="h-5 w-5" />
+            </button>
+            <button
+              className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
+              onClick={() => setIsCartOpen(false)}
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
@@ -503,6 +514,10 @@ export default function OrderingPage() {
           onConfirm={confirmCustomization}
           onClose={() => setCustomizingProduct(null)}
         />
+      )}
+
+      {showSummary && order && (
+        <OrderSummaryModal order={order} coupon={appliedCoupon ?? null} onClose={() => setShowSummary(false)} />
       )}
     </div>
   );
