@@ -41,6 +41,8 @@ export default function CheckoutPage() {
   }
 
   const selectedOrder = orders.find((o) => o.id === selectedId) ?? null;
+  // 剛開桌但還沒點餐（金額 0）的訂單不需要先顯示在結帳清單裡
+  const visibleOrders = orders.filter((order) => Number(order.total_amount) > 0);
   const appliedCoupon = coupons.find((c) => c.order_id === selectedOrder?.id && !c.is_used) ?? null;
   const preview = selectedOrder && appliedCoupon ? previewDiscount(selectedOrder, appliedCoupon) : null;
   const discount = preview?.discount ?? 0;
@@ -88,7 +90,7 @@ export default function CheckoutPage() {
       <div className="lg:col-span-1">
         <h1 className="mb-4 text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">選擇要結帳的桌次</h1>
         <div className="space-y-2">
-          {orders.map((order) => (
+          {visibleOrders.map((order) => (
             <button
               key={order.id}
               onClick={() => selectOrder(order.id)}
@@ -101,7 +103,7 @@ export default function CheckoutPage() {
               桌號 {tableNumberOf(order.table_id)} · NT$ {order.total_amount}
             </button>
           ))}
-          {orders.length === 0 && <p className={mutedTextClass}>目前沒有使用中的桌次</p>}
+          {visibleOrders.length === 0 && <p className={mutedTextClass}>目前沒有使用中的桌次</p>}
         </div>
       </div>
 

@@ -41,11 +41,14 @@ export default function OrderBoardPage() {
     return tables.find((t) => t.id === tableId)?.table_number ?? "?";
   }
 
+  // 剛開桌但還沒點餐（金額 0）的訂單不算「未完成訂單」，看板上先不顯示
+  const visibleOrders = orders.filter((order) => Number(order.total_amount) > 0);
+
   return (
     <div>
       <h1 className="mb-6 text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">即時訂單看板</h1>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {orders.map((order) => (
+        {visibleOrders.map((order) => (
           <div key={order.id} className={`${cardClass} p-5`}>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-gray-100">
@@ -82,7 +85,7 @@ export default function OrderBoardPage() {
             </div>
           </div>
         ))}
-        {orders.length === 0 && <p className={mutedTextClass}>目前沒有使用中的桌次</p>}
+        {visibleOrders.length === 0 && <p className={mutedTextClass}>目前沒有使用中的桌次</p>}
       </div>
     </div>
   );
