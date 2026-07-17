@@ -10,6 +10,7 @@ import StoreLayout from "./pages/store/StoreLayout";
 import OrderBoardPage from "./pages/store/OrderBoardPage";
 import KitchenDisplayPage from "./pages/store/KitchenDisplayPage";
 import CheckoutPage from "./pages/store/CheckoutPage";
+import PaymentResultPage from "./pages/store/PaymentResultPage";
 import CouponsPage from "./pages/store/CouponsPage";
 import ProductManagementPage from "./pages/store/ProductManagementPage";
 import ReportsPage from "./pages/store/ReportsPage";
@@ -26,6 +27,8 @@ export default function App() {
               <Route index element={<OrderingPage />} />
               <Route path="history" element={<OrderHistoryPage />} />
             </Route>
+
+            <Route path="/store/payment-result" element={<PaymentResultPage />} />
 
             <Route path="/store" element={<StoreGate />}>
               <Route element={<StoreLayout />}>

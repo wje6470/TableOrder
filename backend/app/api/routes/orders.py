@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -56,7 +57,20 @@ async def open_order(
     order = Order(table_id=table.id, customer_id=customer.id, status="open", total_amount=0)
     db.add(order)
     table.status = "occupied"
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        # 兩個請求幾乎同時開同一桌時會撞到 idx_orders_one_open_per_table，
+        # 這時候另一個請求已經贏了，直接把它建立的那筆訂單回傳即可。
+        await db.rollback()
+        existing = await db.scalar(
+            select(Order)
+            .where(Order.table_id == table.id, Order.status == "open")
+            .options(selectinload(Order.items))
+        )
+        if existing is not None:
+            return existing
+        raise
     return await _get_order_with_items(db, order.id)
 
 
@@ -169,28 +183,19 @@ async def get_order(
     return order
 
 
-@router.post("/{order_id}/checkout", response_model=OrderOut)
-async def checkout_order(
-    order_id: uuid.UUID,
-    payload: CheckoutRequest,
-    _: StoreAccount = Depends(get_current_store),
-    db: AsyncSession = Depends(get_db),
-):
-    if payload.payment_method not in ("cash", "other"):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="付款方式僅支援 cash 或 other")
+async def compute_checkout_totals(db: AsyncSession, order: Order) -> tuple[Decimal, Decimal, Coupon | None]:
+    """計算結帳金額與可用的優惠券，但不寫入 order 本身（呼叫端決定何時真的關單）。
 
-    order = await _get_order_with_items(db, order_id)
-    if order.status != "open":
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="此訂單已結帳")
-
-    table = await db.get(Table, order.table_id)
-
-    order.total_amount = sum((item.subtotal for item in order.items), Decimal("0"))
+    若套用中的優惠券已失效（過期或限定商品未點），會直接解除跟這筆訂單的關聯——
+    這一步不影響優惠券本身是否被使用過，所以不管最後付款有沒有成功都可以放心先做。
+    """
+    total_amount = sum((item.subtotal for item in order.items), Decimal("0"))
 
     coupon = await db.scalar(select(Coupon).where(Coupon.order_id == order.id, Coupon.is_used.is_(False)))
     discount = Decimal("0")
+    applied_coupon: Coupon | None = None
     if coupon is not None:
-        applicable_base = order.total_amount
+        applicable_base = total_amount
         is_applicable = coupon.valid_until is None or coupon.valid_until >= date.today()
 
         if is_applicable and coupon.product_id is not None:
@@ -209,16 +214,55 @@ async def checkout_order(
                     (applicable_base * coupon.discount_value / Decimal("100")).quantize(Decimal("0.01")),
                     applicable_base,
                 )
-            coupon.is_used = True
-            coupon.used_at = datetime.now(timezone.utc)
-    order.discount_amount = discount
+            applied_coupon = coupon
 
-    order.payment_method = payload.payment_method
-    order.paid_amount = order.total_amount - discount
+    return total_amount, discount, applied_coupon
+
+
+async def finalize_checkout(
+    db: AsyncSession,
+    order: Order,
+    payment_method: str,
+    total_amount: Decimal,
+    discount: Decimal,
+    coupon: Coupon | None,
+) -> None:
+    """把結帳金額寫回 order 並關單。現金結帳算完馬上呼叫；LINE Pay 等非同步金流要等 callback 確認付款成功才呼叫。"""
+    table = await db.get(Table, order.table_id)
+
+    order.total_amount = total_amount
+    order.discount_amount = discount
+    if coupon is not None:
+        coupon.is_used = True
+        coupon.used_at = datetime.now(timezone.utc)
+
+    order.payment_method = payment_method
+    order.paid_amount = total_amount - discount
     order.status = "closed"
     order.closed_at = datetime.now(timezone.utc)
     if table is not None:
         table.status = "idle"
 
     await db.commit()
+
+
+@router.post("/{order_id}/checkout", response_model=OrderOut)
+async def checkout_order(
+    order_id: uuid.UUID,
+    payload: CheckoutRequest,
+    _: StoreAccount = Depends(get_current_store),
+    db: AsyncSession = Depends(get_db),
+):
+    if payload.payment_method != "cash":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="此端點僅支援現金結帳，LINE Pay 請走 /orders/{order_id}/payments/linepay/request",
+        )
+
+    order = await _get_order_with_items(db, order_id)
+    if order.status != "open":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="此訂單已結帳")
+
+    total_amount, discount, coupon = await compute_checkout_totals(db, order)
+    await finalize_checkout(db, order, payload.payment_method, total_amount, discount, coupon)
     return await _get_order_with_items(db, order_id)

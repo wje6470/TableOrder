@@ -60,4 +60,4 @@ class OrderOut(BaseModel):
 
 
 class CheckoutRequest(BaseModel):
-    payment_method: str  # "cash" | "other"
+    payment_method: str  # 目前僅支援 "cash"，線上金流走 /orders/{order_id}/payments/{provider}/request

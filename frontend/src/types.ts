@@ -63,7 +63,7 @@ export interface Order {
   status: "open" | "closed";
   opened_at: string;
   closed_at: string | null;
-  payment_method: "cash" | "other" | null;
+  payment_method: "cash" | "linepay" | "paypal" | null;
   paid_amount: string | null;
   total_amount: string;
   discount_amount: string;

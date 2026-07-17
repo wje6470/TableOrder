@@ -5,6 +5,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_store
@@ -94,7 +95,13 @@ async def delete_product(product_id: uuid.UUID, db: AsyncSession = Depends(get_d
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="商品不存在")
     await db.delete(product)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="這個商品已經被訂單使用過，無法刪除，可以改成「已售完」隱藏它"
+        ) from None
 
 
 async def _get_product_or_404(db: AsyncSession, product_id: uuid.UUID) -> Product:

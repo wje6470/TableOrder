@@ -1,5 +1,6 @@
 import { StickyNote } from "lucide-react";
 import { useEffect, useState } from "react";
+import LinePayScanModal from "../../components/store/LinePayScanModal";
 import { api, ApiError } from "../../lib/api";
 import { cardClass, mutedTextClass, primaryButtonClass } from "../../lib/ui";
 import { Coupon, Order } from "../../types";
@@ -33,9 +34,10 @@ export default function CheckoutPage() {
   const [tables, setTables] = useState<TableInfo[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "other">("cash");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "linepay">("cash");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
 
   useEffect(() => {
     void refresh();
@@ -61,16 +63,39 @@ export default function CheckoutPage() {
   const preview = selectedOrder && appliedCoupon ? previewDiscount(selectedOrder, appliedCoupon) : null;
   const discount = preview?.discount ?? 0;
 
-  async function confirmCheckout() {
+  function selectOrder(id: string) {
+    setSelectedId(id);
+    setPaymentMethod("cash");
+    setError(null);
+    setShowScanner(false);
+  }
+
+  async function confirmCashCheckout() {
     if (!selectedOrder) return;
     setSubmitting(true);
     setError(null);
     try {
-      await api.post(`/orders/${selectedOrder.id}/checkout`, { payment_method: paymentMethod }, "store");
+      await api.post(`/orders/${selectedOrder.id}/checkout`, { payment_method: "cash" }, "store");
       setSelectedId(null);
       await refresh();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "結帳失敗，請再試一次");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleScanDetected(oneTimeKey: string) {
+    if (!selectedOrder) return;
+    setShowScanner(false);
+    setSubmitting(true);
+    setError(null);
+    try {
+      await api.post(`/orders/${selectedOrder.id}/payments/linepay/scan`, { one_time_key: oneTimeKey }, "store");
+      setSelectedId(null);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "LINE Pay 付款失敗，請確認顧客付款碼後重新掃描");
     } finally {
       setSubmitting(false);
     }
@@ -84,7 +109,7 @@ export default function CheckoutPage() {
           {orders.map((order) => (
             <button
               key={order.id}
-              onClick={() => setSelectedId(order.id)}
+              onClick={() => selectOrder(order.id)}
               className={`w-full rounded-xl p-4 text-left text-gray-900 transition dark:text-gray-100 ${
                 selectedId === order.id
                   ? "bg-orange-500 text-white shadow-soft"
@@ -147,32 +172,59 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            <div className="mb-5 flex gap-3">
-              {(["cash", "other"] as const).map((method) => (
-                <button
-                  key={method}
-                  onClick={() => setPaymentMethod(method)}
-                  className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
-                    paymentMethod === method
-                      ? "bg-orange-500 text-white"
-                      : "border border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700/50"
-                  }`}
-                >
-                  {method === "cash" ? "現金" : "其他"}
-                </button>
-              ))}
+            <div className="mb-5 flex flex-wrap gap-3">
+              <button
+                onClick={() => setPaymentMethod("cash")}
+                className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+                  paymentMethod === "cash"
+                    ? "bg-orange-500 text-white"
+                    : "border border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700/50"
+                }`}
+              >
+                現金
+              </button>
+              <button
+                onClick={() => setPaymentMethod("linepay")}
+                className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+                  paymentMethod === "linepay"
+                    ? "bg-orange-500 text-white"
+                    : "border border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700/50"
+                }`}
+              >
+                LINE Pay
+              </button>
+              <button
+                type="button"
+                disabled
+                title="尚未申請 PayPal 商家帳號，之後補上"
+                className="cursor-not-allowed rounded-xl border border-dashed border-gray-200 px-4 py-2 text-sm font-medium text-gray-400 dark:border-gray-700 dark:text-gray-500"
+              >
+                PayPal（尚未開放）
+              </button>
             </div>
 
             {error && <p className="mb-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
-            <button onClick={confirmCheckout} disabled={submitting} className={primaryButtonClass}>
-              確認結帳
+            {submitting && paymentMethod === "linepay" ? (
+              <p className="mb-3 text-sm text-orange-600 dark:text-orange-400">LINE Pay 付款處理中，請稍候…</p>
+            ) : null}
+
+            <button
+              onClick={paymentMethod === "cash" ? confirmCashCheckout : () => setShowScanner(true)}
+              disabled={submitting}
+              className={primaryButtonClass}
+            >
+              {paymentMethod === "cash" ? "確認結帳" : "掃描顧客付款碼"}
             </button>
           </div>
         ) : (
           <p className={mutedTextClass}>請先從左側選擇桌次</p>
         )}
       </div>
+
+      {showScanner && (
+        <LinePayScanModal onDetected={handleScanDetected} onClose={() => setShowScanner(false)} />
+      )}
     </div>
   );
 }

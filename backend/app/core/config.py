@@ -10,8 +10,16 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_service_role_key: str
     cron_secret: str = ""
+    line_pay_channel_id: str = ""
+    line_pay_channel_secret: str = ""
+    line_pay_env: str = "sandbox"
+    backend_base_url: str = "http://localhost:8000"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
+    @property
+    def line_pay_api_base(self) -> str:
+        return "https://api-pay.line.me" if self.line_pay_env == "production" else "https://sandbox-api-pay.line.me"
 
     @property
     def frontend_origins(self) -> list[str]:

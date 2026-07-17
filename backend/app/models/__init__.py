@@ -10,6 +10,7 @@ from app.models.order_item import OrderItem
 from app.models.order_item_option import OrderItemOption
 from app.models.coupon import Coupon
 from app.models.birthday_coupon_rule import BirthdayCouponRule
+from app.models.payment_transaction import PaymentTransaction
 
 __all__ = [
     "Customer",
@@ -25,4 +26,5 @@ __all__ = [
     "OrderItemOption",
     "Coupon",
     "BirthdayCouponRule",
+    "PaymentTransaction",
 ]
