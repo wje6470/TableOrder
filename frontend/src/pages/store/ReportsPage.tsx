@@ -149,24 +149,26 @@ export default function ReportsPage() {
 
       <div className={`${cardClass} p-5`}>
         <h2 className="mb-4 font-semibold tracking-tight text-gray-900 dark:text-gray-100">商品銷售排行</h2>
-        <table className="w-full text-sm text-gray-800 dark:text-gray-200">
-          <thead>
-            <tr className="border-b border-gray-100 text-left text-gray-500 dark:border-gray-700 dark:text-gray-400">
-              <th className="py-2 font-medium">商品</th>
-              <th className="py-2 font-medium">銷售數量</th>
-              <th className="py-2 font-medium">營收</th>
-            </tr>
-          </thead>
-          <tbody>
-            {topProducts.map((p) => (
-              <tr key={p.product_id} className="border-b border-gray-100 last:border-0 dark:border-gray-700">
-                <td className="py-2.5">{p.product_name}</td>
-                <td className="py-2.5">{p.quantity_sold}</td>
-                <td className="py-2.5">NT$ {p.revenue}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[400px] text-sm text-gray-800 dark:text-gray-200">
+            <thead>
+              <tr className="border-b border-gray-100 text-left text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                <th className="py-2 font-medium">商品</th>
+                <th className="py-2 font-medium">銷售數量</th>
+                <th className="py-2 font-medium">營收</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {topProducts.map((p) => (
+                <tr key={p.product_id} className="border-b border-gray-100 last:border-0 dark:border-gray-700">
+                  <td className="py-2.5">{p.product_name}</td>
+                  <td className="py-2.5">{p.quantity_sold}</td>
+                  <td className="py-2.5">NT$ {p.revenue}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {topProducts.length === 0 && (
           <p className="py-4 text-center text-gray-400 dark:text-gray-500">此區間尚無銷售資料</p>
         )}

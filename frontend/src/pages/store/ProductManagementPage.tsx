@@ -200,16 +200,19 @@ export default function ProductManagementPage() {
 
         <div className="space-y-2">
           {products.map((product) => (
-            <div key={product.id} className={`${cardClass} flex items-center justify-between p-4`}>
+            <div
+              key={product.id}
+              className={`${cardClass} flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between`}
+            >
               <div className="flex items-center gap-4">
                 {product.image_url ? (
                   <img
                     src={product.image_url}
                     alt={product.name}
-                    className="h-12 w-12 rounded-xl object-cover"
+                    className="h-12 w-12 flex-shrink-0 rounded-xl object-cover"
                   />
                 ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-50 text-xs text-gray-400 dark:bg-gray-900 dark:text-gray-500">
+                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gray-50 text-xs text-gray-400 dark:bg-gray-900 dark:text-gray-500">
                     無圖片
                   </div>
                 )}
@@ -218,7 +221,7 @@ export default function ProductManagementPage() {
                   <p className={`text-xs ${mutedTextClass}`}>NT$ {product.price}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                 <label className="cursor-pointer text-xs font-medium text-orange-600 dark:text-orange-400">
                   {uploadingProductId === product.id ? "上傳中…" : product.image_url ? "更換圖片" : "上傳圖片"}
                   <input

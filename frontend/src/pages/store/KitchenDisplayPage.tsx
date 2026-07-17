@@ -133,7 +133,7 @@ export default function KitchenDisplayPage() {
   return (
     <div>
       <h1 className="mb-6 text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">廚房出單看板</h1>
-      <div className="flex flex-col gap-6 lg:flex-row">
+      <div className="flex flex-col gap-6 md:flex-row">
         <div className="flex-[2] space-y-3">
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">待完成（{pending.length}）</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

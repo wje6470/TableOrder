@@ -86,8 +86,8 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-      <div className="lg:col-span-1">
+    <div className="grid grid-cols-1 gap-6 md:gap-8 md:grid-cols-3">
+      <div className="md:col-span-1">
         <h1 className="mb-4 text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">選擇要結帳的桌次</h1>
         <div className="space-y-2">
           {visibleOrders.map((order) => (
@@ -107,7 +107,7 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      <div className="lg:col-span-2">
+      <div className="md:col-span-2">
         {selectedOrder ? (
           <div className={`${cardClass} p-6`}>
             <h2 className="mb-4 text-lg font-semibold tracking-tight text-gray-900 dark:text-gray-100">

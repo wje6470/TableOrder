@@ -8,7 +8,7 @@ export default function Home() {
         <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">點餐系統</h1>
         <p className={`mt-2 text-sm ${mutedTextClass}`}>開發用入口，正式環境每台平板應直接開啟對應網址</p>
       </div>
-      <div className="flex gap-4">
+      <div className="flex flex-wrap justify-center gap-4">
         <Link to="/order" className={primaryButtonClass}>
           顧客點餐平板
         </Link>

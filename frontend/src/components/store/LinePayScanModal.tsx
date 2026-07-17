@@ -72,7 +72,7 @@ export default function LinePayScanModal({ onDetected, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 dark:bg-gray-800">
+      <div className="flex max-h-[90vh] w-full max-w-sm flex-col overflow-y-auto rounded-2xl bg-white p-6 dark:bg-gray-800">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">掃描顧客 LINE Pay 付款碼</h2>
           <button
@@ -85,7 +85,7 @@ export default function LinePayScanModal({ onDetected, onClose }: Props) {
         {error ? (
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         ) : (
-          <div id={elementId} className="overflow-hidden rounded-xl bg-black" />
+          <div id={elementId} className="aspect-square w-full overflow-hidden rounded-xl bg-black" />
         )}
         <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
           請顧客打開 LINE Pay 付款頁面，把畫面上的條碼／QR code 對準鏡頭

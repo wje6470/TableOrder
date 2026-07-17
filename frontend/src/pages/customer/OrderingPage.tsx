@@ -217,9 +217,11 @@ export default function OrderingPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
       <div className="flex w-full flex-1 flex-col">
-        <header className="z-10 flex flex-col items-start justify-between gap-4 bg-white p-6 shadow-sm dark:bg-gray-800 dark:shadow-none dark:border-b dark:border-gray-700 md:flex-row md:items-center">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">桌號 {tableNumber}</h1>
+        <header className="z-10 flex flex-col items-start justify-between gap-3 bg-white p-4 shadow-sm dark:bg-gray-800 dark:shadow-none dark:border-b dark:border-gray-700 sm:p-6 md:flex-row md:items-center">
+          <div className="flex-shrink-0 whitespace-nowrap">
+            <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-gray-100 sm:text-2xl">
+              桌號 {tableNumber}
+            </h1>
             <p className={`mt-1 text-sm ${mutedTextClass}`}>已累計消費 NT$ {orderedTotal}</p>
           </div>
           <div className="flex w-full flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center md:w-auto">
@@ -235,7 +237,7 @@ export default function OrderingPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
               <Link to="/order/history" className={secondaryButtonClass}>
                 點餐紀錄
               </Link>
@@ -259,7 +261,7 @@ export default function OrderingPage() {
           </div>
         </header>
 
-        <div className="hide-scrollbar overflow-x-auto border-b border-gray-100 bg-white px-6 py-4 dark:border-gray-700 dark:bg-gray-800">
+        <div className="hide-scrollbar overflow-x-auto border-b border-gray-100 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800 sm:px-6 sm:py-4">
           <div className="flex gap-2">
             <button onClick={() => setActiveCategory("all")} className={categoryPillClass(activeCategory === "all")}>
               <UtensilsCrossed className="mr-2 h-4 w-4" />
@@ -278,10 +280,12 @@ export default function OrderingPage() {
         </div>
 
         {error && (
-          <p className="bg-red-50 px-6 py-2.5 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-400">{error}</p>
+          <p className="bg-red-50 px-4 py-2.5 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-400 sm:px-6">
+            {error}
+          </p>
         )}
 
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           {filteredProducts.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-gray-400 dark:text-gray-500">
               <Search className="mb-4 h-16 w-16 text-gray-300 dark:text-gray-600" />
@@ -289,7 +293,7 @@ export default function OrderingPage() {
               <p className="mt-1 text-sm">請試試其他關鍵字或分類</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
               {filteredProducts.map((product) => (
                 <div
                   key={product.id}
