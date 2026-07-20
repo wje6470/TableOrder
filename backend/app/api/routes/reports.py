@@ -1,5 +1,6 @@
 import csv
 import io
+import uuid
 from datetime import date
 from pathlib import Path
 
@@ -10,7 +11,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_store
 from app.db.session import get_db
 from app.models.store_account import StoreAccount
-from app.schemas.report import AvgOrderValue, ProductRanking, RevenuePoint
+from app.schemas.report import (
+    AvgOrderValue,
+    CategoryRanking,
+    CouponStats,
+    PaymentMethodBreakdown,
+    ProductRanking,
+    ProductRevenuePoint,
+    RevenuePoint,
+)
 from app.services import report_service
 
 router = APIRouter(prefix="/reports", tags=["reports"], dependencies=[Depends(get_current_store)])
@@ -48,9 +57,10 @@ async def top_products(
     start_date: date,
     end_date: date,
     limit: int = Query(10, ge=1, le=100),
+    sort_by: str = Query("quantity", pattern="^(quantity|revenue)$"),
     db: AsyncSession = Depends(get_db),
 ):
-    return await report_service.get_top_products(db, start_date, end_date, limit)
+    return await report_service.get_top_products(db, start_date, end_date, limit, sort_by)
 
 
 @router.get("/avg-order-value", response_model=AvgOrderValue)
@@ -58,14 +68,42 @@ async def avg_order_value(start_date: date, end_date: date, db: AsyncSession = D
     return await report_service.get_avg_order_value(db, start_date, end_date)
 
 
+@router.get("/payment-methods", response_model=list[PaymentMethodBreakdown])
+async def payment_methods(start_date: date, end_date: date, db: AsyncSession = Depends(get_db)):
+    return await report_service.get_payment_method_breakdown(db, start_date, end_date)
+
+
+@router.get("/categories", response_model=list[CategoryRanking])
+async def categories(start_date: date, end_date: date, db: AsyncSession = Depends(get_db)):
+    return await report_service.get_category_ranking(db, start_date, end_date)
+
+
+@router.get("/coupons", response_model=CouponStats)
+async def coupons(start_date: date, end_date: date, db: AsyncSession = Depends(get_db)):
+    return await report_service.get_coupon_stats(db, start_date, end_date)
+
+
+@router.get("/products/{product_id}/revenue", response_model=list[ProductRevenuePoint])
+async def product_revenue(
+    product_id: uuid.UUID,
+    start_date: date,
+    end_date: date,
+    period: str = Query("daily", pattern="^(daily|monthly)$"),
+    db: AsyncSession = Depends(get_db),
+):
+    return await report_service.get_product_revenue_trend(db, product_id, start_date, end_date, period)
+
+
 @router.get("/export")
 async def export_report(
     start_date: date,
     end_date: date,
     format: str = Query("csv", pattern="^(csv|xlsx|pdf)$"),
+    product_ids: list[uuid.UUID] | None = Query(None),
+    payment_methods: list[str] | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    rows = await report_service.get_order_detail_rows(db, start_date, end_date)
+    rows = await report_service.get_order_detail_rows(db, start_date, end_date, product_ids, payment_methods)
     filename = f"report_{start_date}_{end_date}.{format}"
 
     if format == "csv":

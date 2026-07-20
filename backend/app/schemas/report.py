@@ -23,3 +23,33 @@ class AvgOrderValue(BaseModel):
     order_count: int
     total_revenue: Decimal
     avg_order_value: Decimal
+
+
+class PaymentMethodBreakdown(BaseModel):
+    payment_method: str
+    revenue: Decimal
+    order_count: int
+
+
+class CategoryRanking(BaseModel):
+    category_id: str | None
+    category_name: str
+    quantity_sold: int
+    revenue: Decimal
+
+
+class ProductRevenuePoint(BaseModel):
+    period: str
+    quantity_sold: int
+    revenue: Decimal
+
+
+class CouponSourceStats(BaseModel):
+    source: str
+    issued_count: int
+    used_count: int
+
+
+class CouponStats(BaseModel):
+    by_source: list[CouponSourceStats]
+    total_discount_amount: Decimal
