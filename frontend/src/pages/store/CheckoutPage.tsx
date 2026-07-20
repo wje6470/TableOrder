@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import LinePayScanModal from "../../components/store/LinePayScanModal";
 import { api, ApiError } from "../../lib/api";
 import { previewDiscount } from "../../lib/coupon";
+import { supabase } from "../../lib/supabaseClient";
 import { cardClass, mutedTextClass, primaryButtonClass } from "../../lib/ui";
 import { Coupon, Order } from "../../types";
 
@@ -23,6 +24,18 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     void refresh();
+
+    // 結帳可能從別的裝置／分頁完成（例如另一台平板也開著結帳頁），這頁自己沒有主動送出
+    // 結帳動作就不會知道，訂單會一直留在畫面上，所以要訂閱 Realtime 才能自動同步。
+    const channel = supabase
+      .channel("store-checkout")
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => void refresh())
+      .on("postgres_changes", { event: "*", schema: "public", table: "order_items" }, () => void refresh())
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, []);
 
   async function refresh() {
