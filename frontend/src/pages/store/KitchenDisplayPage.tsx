@@ -1,5 +1,5 @@
 import { CheckCircle2, Circle, StickyNote } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../lib/api";
 import { supabase } from "../../lib/supabaseClient";
 import { cardClass, mutedTextClass } from "../../lib/ui";
@@ -18,6 +18,10 @@ export default function KitchenDisplayPage() {
   const [tickets, setTickets] = useState<KitchenTicket[]>([]);
   const [tables, setTables] = useState<TableInfo[]>([]);
   const [now, setNow] = useState(() => Date.now());
+  const pendingItemIds = useRef<Set<string>>(new Set());
+  // 記錄每個品項「本地最後一次變更」的時間點。任何在這個時間點之前就發出的
+  // GET，就算晚回來，也不能拿它的資料去蓋掉這個品項——那份資料本來就比較舊。
+  const lastLocalChangeAt = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     void refresh();
@@ -39,11 +43,36 @@ export default function KitchenDisplayPage() {
   }, []);
 
   async function refresh() {
+    const fetchStartedAt = Date.now();
+    // 這支 GET 送出當下，有哪些品項的勾選還在處理中——一定要在發出請求「之前」拍照存起來，
+    // 不能等資料回來、要套用的時候才去看 pendingItemIds 現在的內容：等它回來時，PATCH
+    // 早就可能已經結束、被從清單移除了，但這份資料的查詢時間點終究還是那個時候的舊資料。
+    const pendingAtFetchStart = new Set(pendingItemIds.current);
     const [ticketList, tableList] = await Promise.all([
       api.get<KitchenTicket[]>("/kitchen/tickets", "store"),
       api.get<TableInfo[]>("/tables"),
     ]);
-    setTickets(ticketList);
+    // 兩種情況都不能讓這次抓到的資料蓋掉品項的本地狀態：
+    // 1. 發出這支 GET 的當下，品項的勾選還在送出中——這份資料可能是 PATCH 寫進去前的舊資料。
+    // 2. 這次 GET 是在本地最後一次變更「之前」就發出的，只是比較晚才回來——資料本來就比較舊，
+    //    就算 PATCH 已經成功了，這種慢回應還是可能把剛確認好的狀態蓋回去。
+    setTickets((prev) =>
+      ticketList.map((ticket) => {
+        const prevTicket = prev.find((t) => t.id === ticket.id);
+        if (!prevTicket) return ticket;
+        return {
+          ...ticket,
+          items: ticket.items.map((item) => {
+            const wasPending = pendingAtFetchStart.has(item.id);
+            const changedAt = lastLocalChangeAt.current.get(item.id);
+            const isStale = changedAt !== undefined && fetchStartedAt < changedAt;
+            if (!wasPending && !isStale) return item;
+            const prevItem = prevTicket.items.find((i) => i.id === item.id);
+            return prevItem ? { ...item, is_completed: prevItem.is_completed } : item;
+          }),
+        };
+      })
+    );
     setTables(tableList);
   }
 
@@ -53,6 +82,8 @@ export default function KitchenDisplayPage() {
 
   async function toggleItem(ticketId: string, item: OrderItem) {
     const nextCompleted = !item.is_completed;
+    pendingItemIds.current.add(item.id);
+    lastLocalChangeAt.current.set(item.id, Date.now());
     setTickets((prev) =>
       prev.map((ticket) =>
         ticket.id !== ticketId
@@ -67,6 +98,8 @@ export default function KitchenDisplayPage() {
       await api.patch(`/kitchen/tickets/${ticketId}/items/${item.id}`, { is_completed: nextCompleted }, "store");
     } catch {
       void refresh();
+    } finally {
+      pendingItemIds.current.delete(item.id);
     }
   }
 
