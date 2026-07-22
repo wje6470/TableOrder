@@ -107,5 +107,15 @@ export interface CartLine {
 export interface RecommendedProduct {
   product: Product;
   reason: string | null;
-  source: "ai" | "popular";
+  source: "ai" | "popular" | "quiz";
+}
+
+export interface MoodQuizQuestion {
+  question: string;
+  options: string[];
+}
+
+export interface MoodQuizAnswer {
+  question: string;
+  answer: string;
 }

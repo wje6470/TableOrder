@@ -8,4 +8,4 @@ from app.schemas.product import ProductOut
 class RecommendedProductOut(BaseModel):
     product: ProductOut
     reason: str | None
-    source: Literal["ai", "popular"]
+    source: Literal["ai", "popular", "quiz"]

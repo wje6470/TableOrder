@@ -7,6 +7,7 @@ from app.api.routes import (
     categories,
     coupons,
     kitchen,
+    mood_quiz,
     orders,
     payments,
     products,
@@ -37,6 +38,7 @@ app.include_router(kitchen.router)
 app.include_router(coupons.router)
 app.include_router(reports.router)
 app.include_router(recommendations.router)
+app.include_router(mood_quiz.router)
 
 
 @app.get("/health")

@@ -1,6 +1,7 @@
 import { ChevronRight, Clock, Minus, Plus, Receipt, Search, ShoppingCart, Sparkles, StickyNote, Trash2, UtensilsCrossed } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import MoodQuizPanel from "../../components/customer/MoodQuizPanel";
 import OrderSummaryModal from "../../components/OrderSummaryModal";
 import ProductOptionsModal from "../../components/ProductOptionsModal";
 import ThemeToggle from "../../components/ThemeToggle";
@@ -31,6 +32,8 @@ function isCouponUsable(coupon: Coupon): boolean {
   const today = new Date().toISOString().slice(0, 10);
   return coupon.valid_until >= today;
 }
+
+const MOOD_QUIZ_TAB = "__mood_quiz__";
 
 function optionsKey(selectedOptionIds: string[]): string {
   return [...selectedOptionIds].sort().join(",");
@@ -341,6 +344,13 @@ export default function OrderingPage() {
                 {category.name}
               </button>
             ))}
+            <button
+              onClick={() => setActiveCategory(MOOD_QUIZ_TAB)}
+              className={categoryPillClass(activeCategory === MOOD_QUIZ_TAB)}
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              AI 今日推薦
+            </button>
           </div>
         </div>
 
@@ -351,7 +361,9 @@ export default function OrderingPage() {
         )}
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
-          {filteredProducts.length === 0 ? (
+          {activeCategory === MOOD_QUIZ_TAB ? (
+            <MoodQuizPanel onAddToCart={addToCart} />
+          ) : filteredProducts.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-gray-400 dark:text-gray-500">
               <Search className="mb-4 h-16 w-16 text-gray-300 dark:text-gray-600" />
               <p className="text-lg font-medium">找不到相關餐點</p>
