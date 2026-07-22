@@ -4,7 +4,7 @@ import LinePayScanModal from "../../components/store/LinePayScanModal";
 import { api, ApiError } from "../../lib/api";
 import { previewDiscount } from "../../lib/coupon";
 import { supabase } from "../../lib/supabaseClient";
-import { cardClass, mutedTextClass, primaryButtonClass } from "../../lib/ui";
+import { cardClass, inputClass, mutedTextClass, primaryButtonClass } from "../../lib/ui";
 import { Coupon, Order } from "../../types";
 
 interface TableInfo {
@@ -21,6 +21,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [receivedAmount, setReceivedAmount] = useState("");
 
   useEffect(() => {
     void refresh();
@@ -59,12 +60,16 @@ export default function CheckoutPage() {
   const appliedCoupon = coupons.find((c) => c.order_id === selectedOrder?.id && !c.is_used) ?? null;
   const preview = selectedOrder && appliedCoupon ? previewDiscount(selectedOrder, appliedCoupon) : null;
   const discount = preview?.discount ?? 0;
+  const amountDue = selectedOrder ? Number(selectedOrder.total_amount) - discount : 0;
+  const receivedNumber = Number(receivedAmount);
+  const change = receivedNumber - amountDue;
 
   function selectOrder(id: string) {
     setSelectedId(id);
     setPaymentMethod("cash");
     setError(null);
     setShowScanner(false);
+    setReceivedAmount("");
   }
 
   async function confirmDirectCheckout(method: "cash" | "paypal") {
@@ -201,6 +206,33 @@ export default function CheckoutPage() {
                 PayPal（刷卡機）
               </button>
             </div>
+
+            {paymentMethod === "cash" && (
+              <div className={`${cardClass} mb-5 p-4`}>
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  收現金額（找零計算機）
+                </label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  value={receivedAmount}
+                  onChange={(e) => setReceivedAmount(e.target.value)}
+                  placeholder="輸入顧客付的金額"
+                  className={inputClass}
+                />
+                {receivedAmount !== "" && (
+                  <div
+                    className={`mt-3 flex items-center justify-between text-lg font-bold ${
+                      change < 0 ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-gray-100"
+                    }`}
+                  >
+                    <span>{change < 0 ? "還差" : "應找零"}</span>
+                    <span>NT$ {Math.abs(change).toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {paymentMethod === "paypal" && (
               <p className="mb-3 text-xs text-gray-400 dark:text-gray-500">

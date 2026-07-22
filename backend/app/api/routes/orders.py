@@ -45,16 +45,21 @@ async def open_order(
     table = await db.scalar(select(Table).where(Table.table_number == payload.table_number))
     if table is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="桌號不存在")
+    table_id = table.id
 
     existing = await db.scalar(
         select(Order)
-        .where(Order.table_id == table.id, Order.status == "open")
+        .where(Order.table_id == table_id, Order.status == "open")
         .options(selectinload(Order.items))
     )
     if existing is not None:
+        if existing.customer_id != customer.id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail="此桌目前有其他顧客尚未結帳的訂單，請通知店員處理"
+            )
         return existing
 
-    order = Order(table_id=table.id, customer_id=customer.id, status="open", total_amount=0)
+    order = Order(table_id=table_id, customer_id=customer.id, status="open", total_amount=0)
     db.add(order)
     table.status = "occupied"
     try:
@@ -62,13 +67,20 @@ async def open_order(
     except IntegrityError:
         # 兩個請求幾乎同時開同一桌時會撞到 idx_orders_one_open_per_table，
         # 這時候另一個請求已經贏了，直接把它建立的那筆訂單回傳即可。
+        # 用 table_id（一開始就存好的純值）查詢，而不是 table.id——
+        # rollback 之後 table 這個 ORM 物件的屬性會被 expire，此時再存取
+        # table.id 會觸發同步 lazy-load，在 async 環境下會丟出 MissingGreenlet。
         await db.rollback()
         existing = await db.scalar(
             select(Order)
-            .where(Order.table_id == table.id, Order.status == "open")
+            .where(Order.table_id == table_id, Order.status == "open")
             .options(selectinload(Order.items))
         )
         if existing is not None:
+            if existing.customer_id != customer.id:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT, detail="此桌目前有其他顧客尚未結帳的訂單，請通知店員處理"
+                )
             return existing
         raise
     return await _get_order_with_items(db, order.id)
