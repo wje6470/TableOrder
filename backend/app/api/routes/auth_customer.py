@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token, hash_password, verify_password
@@ -23,7 +24,13 @@ async def register(payload: CustomerRegister, db: AsyncSession = Depends(get_db)
         birthday=payload.birthday,
     )
     db.add(customer)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        # 兩個請求幾乎同時用同一支手機號碼註冊時會撞到 unique constraint，
+        # 這時候另一個請求已經贏了，回同一種「已註冊過」的訊息即可。
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="此手機號碼已註冊過") from None
     await db.refresh(customer)
 
     token = create_access_token(subject=str(customer.id), role="customer")
