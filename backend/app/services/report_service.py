@@ -34,7 +34,7 @@ async def get_revenue(db: AsyncSession, start_date: date, end_date: date, period
     bucket = func.to_char(Order.closed_at, bucket_format).label("bucket")
 
     query = (
-        select(bucket, func.sum(Order.total_amount), func.count(Order.id))
+        select(bucket, func.sum(Order.paid_amount), func.count(Order.id))
         .where(Order.status == "closed", Order.closed_at >= start, Order.closed_at <= end)
         .group_by(bucket)
         .order_by(bucket)
@@ -74,10 +74,10 @@ async def get_payment_method_breakdown(
 ) -> list[PaymentMethodBreakdown]:
     start, end = _range_bounds(start_date, end_date)
     query = (
-        select(Order.payment_method, func.sum(Order.total_amount), func.count(Order.id))
+        select(Order.payment_method, func.sum(Order.paid_amount), func.count(Order.id))
         .where(Order.status == "closed", Order.closed_at >= start, Order.closed_at <= end)
         .group_by(Order.payment_method)
-        .order_by(func.sum(Order.total_amount).desc())
+        .order_by(func.sum(Order.paid_amount).desc())
     )
     rows = (await db.execute(query)).all()
     return [
@@ -169,7 +169,7 @@ async def get_coupon_stats(db: AsyncSession, start_date: date, end_date: date) -
 
 async def get_avg_order_value(db: AsyncSession, start_date: date, end_date: date) -> AvgOrderValue:
     start, end = _range_bounds(start_date, end_date)
-    query = select(func.count(Order.id), func.coalesce(func.sum(Order.total_amount), 0)).where(
+    query = select(func.count(Order.id), func.coalesce(func.sum(Order.paid_amount), 0)).where(
         Order.status == "closed", Order.closed_at >= start, Order.closed_at <= end
     )
     order_count, total_revenue = (await db.execute(query)).one()
