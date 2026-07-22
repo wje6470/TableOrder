@@ -2,6 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_store
@@ -36,4 +37,10 @@ async def delete_table(table_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     if table is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="桌台不存在")
     await db.delete(table)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="這個桌台已經有訂單紀錄，無法刪除"
+        ) from None
