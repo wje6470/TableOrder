@@ -10,6 +10,7 @@ from app.api.routes import (
     orders,
     payments,
     products,
+    recommendations,
     reports,
     tables,
 )
@@ -35,6 +36,7 @@ app.include_router(payments.router)
 app.include_router(kitchen.router)
 app.include_router(coupons.router)
 app.include_router(reports.router)
+app.include_router(recommendations.router)
 
 
 @app.get("/health")

@@ -1,4 +1,4 @@
-import { ChevronRight, Clock, Minus, Plus, Receipt, Search, ShoppingCart, StickyNote, Trash2, UtensilsCrossed } from "lucide-react";
+import { ChevronRight, Clock, Minus, Plus, Receipt, Search, ShoppingCart, Sparkles, StickyNote, Trash2, UtensilsCrossed } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import OrderSummaryModal from "../../components/OrderSummaryModal";
@@ -9,7 +9,7 @@ import { api, ApiError } from "../../lib/api";
 import { supabase } from "../../lib/supabaseClient";
 import { tableConfig } from "../../lib/table";
 import { categoryPillClass, mutedTextClass, pillInputClass, primaryButtonClass, secondaryButtonClass } from "../../lib/ui";
-import { CartLine, Category, Coupon, Order, Product } from "../../types";
+import { CartLine, Category, Coupon, Order, Product, RecommendedProduct } from "../../types";
 
 function couponLabel(coupon: Coupon, products: Product[]): string {
   const discount = coupon.discount_type === "fixed" ? `折 NT$ ${coupon.discount_value}` : `${coupon.discount_value}% 折扣`;
@@ -73,6 +73,7 @@ export default function OrderingPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [selectedCouponId, setSelectedCouponId] = useState("");
   const [showSummary, setShowSummary] = useState(false);
+  const [recommendations, setRecommendations] = useState<RecommendedProduct[]>([]);
 
   const tableNumber = tableConfig.get() ?? "";
 
@@ -80,6 +81,7 @@ export default function OrderingPage() {
     void loadMenu();
     void openOrder();
     void loadCoupons();
+    void loadRecommendations();
   }, []);
 
   useEffect(() => {
@@ -122,6 +124,16 @@ export default function OrderingPage() {
   async function loadCoupons() {
     const list = await api.get<Coupon[]>("/coupons/me", "customer");
     setCoupons(list);
+  }
+
+  async function loadRecommendations() {
+    try {
+      const list = await api.get<RecommendedProduct[]>("/customers/me/recommendations", "customer");
+      setRecommendations(list);
+    } catch {
+      // 推薦是錦上添花的功能，失敗就不顯示，不影響正常點餐。
+      setRecommendations([]);
+    }
   }
 
   async function applyCoupon() {
@@ -284,6 +296,35 @@ export default function OrderingPage() {
             </div>
           </div>
         </header>
+
+        {recommendations.length > 0 && (
+          <div className="hide-scrollbar overflow-x-auto border-b border-gray-100 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800 sm:px-6 sm:py-4">
+            <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-orange-600 dark:text-orange-400">
+              <Sparkles className="h-4 w-4" />
+              為你推薦
+            </div>
+            <div className="flex gap-3">
+              {recommendations.map((rec) => (
+                <button
+                  key={rec.product.id}
+                  onClick={() => addToCart(rec.product)}
+                  disabled={!rec.product.is_available}
+                  className="flex w-56 flex-shrink-0 flex-col items-start rounded-xl border border-orange-100 bg-orange-50/60 p-3 text-left transition hover:-translate-y-0.5 hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-50 dark:border-orange-500/20 dark:bg-orange-500/5"
+                >
+                  <div className="flex w-full items-center justify-between">
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">{rec.product.name}</span>
+                    <span className="text-sm font-bold text-orange-600 dark:text-orange-400">
+                      NT$ {rec.product.price}
+                    </span>
+                  </div>
+                  {rec.reason && (
+                    <p className={`mt-1 line-clamp-2 text-xs ${mutedTextClass}`}>{rec.reason}</p>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="hide-scrollbar overflow-x-auto border-b border-gray-100 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800 sm:px-6 sm:py-4">
           <div className="flex gap-2">

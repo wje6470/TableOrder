@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     line_pay_channel_secret: str = ""
     line_pay_env: str = "sandbox"
     backend_base_url: str = "http://localhost:8000"
+    gemini_api_key: str = ""
 
     # extra="ignore"：.env 裡可能會有還沒正式串接、只是先暫存的設定（例如 PayPal 相關變數），
     # 不希望這種還沒用到的欄位讓整個後端啟動失敗。

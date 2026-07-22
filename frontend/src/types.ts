@@ -103,3 +103,9 @@ export interface CartLine {
   note: string;
   selectedOptionIds: string[];
 }
+
+export interface RecommendedProduct {
+  product: Product;
+  reason: string | null;
+  source: "ai" | "popular";
+}
