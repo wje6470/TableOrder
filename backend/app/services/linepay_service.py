@@ -34,25 +34,44 @@ def _headers(uri: str, body: str) -> dict[str, str]:
     }
 
 
+async def _call(method: str, uri: str, *, content: bytes | None, headers: dict[str, str], timeout: float) -> dict:
+    """實際打 LINE Pay API、統一轉譯錯誤，讓呼叫端只需要處理 LinePayError 就好，
+    不會被網路錯誤或格式異常的回應炸出未包裝的例外。
+
+    httpx.TimeoutException 刻意不在這裡包裝、直接往上丟——pay_with_one_time_key
+    需要自己接住逾時去改呼叫查詢 API 確認實際付款結果，不能被這裡吃掉。
+    """
+    async with httpx.AsyncClient(base_url=settings.line_pay_api_base, timeout=timeout) as client:
+        try:
+            resp = await client.request(method, uri, content=content, headers=headers)
+        except httpx.TimeoutException:
+            raise
+        except httpx.HTTPError as exc:
+            raise LinePayError("NETWORK_ERROR", f"無法連線到 LINE Pay，請稍後再試（{exc}）") from exc
+
+    try:
+        data = resp.json()
+    except ValueError as exc:
+        raise LinePayError("INVALID_RESPONSE", f"LINE Pay 回應格式異常（HTTP {resp.status_code}）") from exc
+
+    if data.get("returnCode") != "0000":
+        raise LinePayError(data.get("returnCode", "?"), data.get("returnMessage", "unknown error"))
+
+    info = data.get("info")
+    if info is None:
+        raise LinePayError("MISSING_INFO", "LINE Pay 回應缺少 info 欄位")
+    return info
+
+
 async def _post(uri: str, payload: dict, timeout: float = 15) -> dict:
     # body 一定要跟簽章用的字串完全一致（byte for byte），所以先序列化成字串，
     # 簽章跟實際送出的 request body 都用同一份字串，不要各自 json.dumps 一次。
     body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
-    async with httpx.AsyncClient(base_url=settings.line_pay_api_base, timeout=timeout) as client:
-        resp = await client.post(uri, content=body.encode("utf-8"), headers=_headers(uri, body))
-    data = resp.json()
-    if data.get("returnCode") != "0000":
-        raise LinePayError(data.get("returnCode", "?"), data.get("returnMessage", "unknown error"))
-    return data["info"]
+    return await _call("POST", uri, content=body.encode("utf-8"), headers=_headers(uri, body), timeout=timeout)
 
 
 async def _get(uri: str) -> dict:
-    async with httpx.AsyncClient(base_url=settings.line_pay_api_base, timeout=15) as client:
-        resp = await client.get(uri, headers=_headers(uri, ""))
-    data = resp.json()
-    if data.get("returnCode") != "0000":
-        raise LinePayError(data.get("returnCode", "?"), data.get("returnMessage", "unknown error"))
-    return data["info"]
+    return await _call("GET", uri, content=None, headers=_headers(uri, ""), timeout=15)
 
 
 async def request_payment(
