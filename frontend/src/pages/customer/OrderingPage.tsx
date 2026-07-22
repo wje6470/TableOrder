@@ -1,4 +1,4 @@
-import { ChevronRight, Minus, Plus, Receipt, Search, ShoppingCart, StickyNote, Trash2, UtensilsCrossed } from "lucide-react";
+import { ChevronRight, Clock, Minus, Plus, Receipt, Search, ShoppingCart, StickyNote, Trash2, UtensilsCrossed } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import OrderSummaryModal from "../../components/OrderSummaryModal";
@@ -64,6 +64,7 @@ export default function OrderingPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -107,7 +108,14 @@ export default function OrderingPage() {
       const current = await api.post<Order>("/orders/open", { table_number: tableNumber }, "customer");
       setOrder(current);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "無法開始點餐，請通知店員");
+      if (err instanceof ApiError && err.status === 409) {
+        // 這桌目前還有別的帳號尚未結帳的訂單（正常情況下不會發生，一桌一平板）。
+        // 一旦店員完成結帳，CustomerGate 會偵測到桌況變回 idle 並自動登出，
+        // 讓這裡的顧客可以重新登入、正常開始點餐，不需要額外處理。
+        setBlockedMessage(err.message);
+      } else {
+        setError(err instanceof ApiError ? err.message : "無法開始點餐，請通知店員");
+      }
     }
   }
 
@@ -212,6 +220,22 @@ export default function OrderingPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (blockedMessage) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-gray-50 px-6 text-center dark:bg-gray-900">
+        <Clock className="h-12 w-12 text-orange-500" />
+        <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-gray-100">此桌尚未結帳，請稍候</h1>
+        <p className={`max-w-sm text-sm ${mutedTextClass}`}>{blockedMessage}</p>
+        <p className={`max-w-sm text-sm ${mutedTextClass}`}>
+          店員完成結帳後這裡會自動回到登入畫面，屆時請重新登入即可開始點餐。
+        </p>
+        <button onClick={logout} className={secondaryButtonClass}>
+          登出
+        </button>
+      </div>
+    );
   }
 
   return (

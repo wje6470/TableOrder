@@ -1,14 +1,15 @@
 import uuid
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_customer, get_current_payload, get_current_store
+from app.core.config import BUSINESS_TIMEZONE
 from app.db.session import get_db
 from app.models.coupon import Coupon
 from app.models.customer import Customer
@@ -36,6 +37,17 @@ async def _get_order_with_items(db: AsyncSession, order_id: uuid.UUID) -> Order:
     return order
 
 
+async def _find_other_active_order(db: AsyncSession, customer_id: uuid.UUID) -> Order | None:
+    """這個顧客帳號是不是已經在別桌開了一筆還沒結帳的訂單（同一個帳號不能同時在兩桌用餐）。"""
+    return await db.scalar(select(Order).where(Order.customer_id == customer_id, Order.status == "open"))
+
+
+async def _other_table_conflict_message(db: AsyncSession, other_order: Order) -> str:
+    other_table = await db.get(Table, other_order.table_id)
+    table_number = other_table.table_number if other_table is not None else "?"
+    return f"你在「{table_number}」桌還有尚未結帳的訂單，請先完成該桌結帳後再到其他桌點餐"
+
+
 @router.post("/open", response_model=OrderOut)
 async def open_order(
     payload: OrderOpenRequest,
@@ -46,6 +58,7 @@ async def open_order(
     if table is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="桌號不存在")
     table_id = table.id
+    customer_id = customer.id
 
     existing = await db.scalar(
         select(Order)
@@ -53,23 +66,28 @@ async def open_order(
         .options(selectinload(Order.items))
     )
     if existing is not None:
-        if existing.customer_id != customer.id:
+        if existing.customer_id != customer_id:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="此桌目前有其他顧客尚未結帳的訂單，請通知店員處理"
             )
         return existing
 
-    order = Order(table_id=table_id, customer_id=customer.id, status="open", total_amount=0)
+    other_active = await _find_other_active_order(db, customer_id)
+    if other_active is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=await _other_table_conflict_message(db, other_active))
+
+    order = Order(table_id=table_id, customer_id=customer_id, status="open", total_amount=0)
     db.add(order)
     table.status = "occupied"
     try:
         await db.commit()
     except IntegrityError:
-        # 兩個請求幾乎同時開同一桌時會撞到 idx_orders_one_open_per_table，
-        # 這時候另一個請求已經贏了，直接把它建立的那筆訂單回傳即可。
-        # 用 table_id（一開始就存好的純值）查詢，而不是 table.id——
-        # rollback 之後 table 這個 ORM 物件的屬性會被 expire，此時再存取
-        # table.id 會觸發同步 lazy-load，在 async 環境下會丟出 MissingGreenlet。
+        # 兩個請求幾乎同時開桌時會撞到 idx_orders_one_open_per_table（同桌被搶）或
+        # idx_orders_one_open_per_customer（同一個帳號幾乎同時在兩桌都送出開桌請求）。
+        # 這時候另一個請求已經贏了，重新查一次判斷是撞到哪一種、回對應的訊息即可。
+        # 全程用 table_id／customer_id（一開始就存好的純值）查詢，不要用 table.id／customer.id——
+        # rollback 之後這兩個 ORM 物件的屬性都會被 expire，此時再存取會觸發同步 lazy-load，
+        # 在 async 環境下會丟出 MissingGreenlet。
         await db.rollback()
         existing = await db.scalar(
             select(Order)
@@ -77,11 +95,16 @@ async def open_order(
             .options(selectinload(Order.items))
         )
         if existing is not None:
-            if existing.customer_id != customer.id:
+            if existing.customer_id != customer_id:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT, detail="此桌目前有其他顧客尚未結帳的訂單，請通知店員處理"
                 )
             return existing
+        other_active = await _find_other_active_order(db, customer_id)
+        if other_active is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail=await _other_table_conflict_message(db, other_active)
+            )
         raise
     return await _get_order_with_items(db, order.id)
 
@@ -154,7 +177,11 @@ async def add_items(
         added_total += subtotal
 
     order.total_amount = order.total_amount + added_total
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="送出的品項資料不合法") from None
     return await _get_order_with_items(db, order_id)
 
 
@@ -208,7 +235,7 @@ async def compute_checkout_totals(db: AsyncSession, order: Order) -> tuple[Decim
     applied_coupon: Coupon | None = None
     if coupon is not None:
         applicable_base = total_amount
-        is_applicable = coupon.valid_until is None or coupon.valid_until >= date.today()
+        is_applicable = coupon.valid_until is None or coupon.valid_until >= datetime.now(BUSINESS_TIMEZONE).date()
 
         if is_applicable and coupon.product_id is not None:
             applicable_base = sum(
@@ -239,19 +266,35 @@ async def finalize_checkout(
     discount: Decimal,
     coupon: Coupon | None,
 ) -> None:
-    """把結帳金額寫回 order 並關單。現金結帳算完馬上呼叫；LINE Pay 等非同步金流要等 callback 確認付款成功才呼叫。"""
-    table = await db.get(Table, order.table_id)
+    """把結帳金額寫回 order 並關單。現金結帳算完馬上呼叫；LINE Pay 等非同步金流要等 callback 確認付款成功才呼叫。
 
-    order.total_amount = total_amount
-    order.discount_amount = discount
+    用「WHERE status = 'open'」的條件式 UPDATE，而不是先讀出 order 再逐一設定屬性、最後
+    commit——是為了避免兩個請求幾乎同時把同一筆訂單結帳（例如店員面板連點兩下「確認結帳」，
+    或 LINE Pay 顧客端 callback 跟店員手動現金結帳同時發生）。兩個請求呼叫這裡之前都各自
+    看到 status 還是 open，但只有一個 UPDATE 能真的把 open 改成 closed，另一個會發現
+    rowcount 是 0（代表已經被別的請求結過帳了），直接視為失敗，不會讓同一筆訂單被結兩次帳、
+    營收被算兩次。
+    """
+    result = await db.execute(
+        update(Order)
+        .where(Order.id == order.id, Order.status == "open")
+        .values(
+            total_amount=total_amount,
+            discount_amount=discount,
+            payment_method=payment_method,
+            paid_amount=total_amount - discount,
+            status="closed",
+            closed_at=datetime.now(timezone.utc),
+        )
+    )
+    if result.rowcount == 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="此訂單已結帳")
+
     if coupon is not None:
         coupon.is_used = True
         coupon.used_at = datetime.now(timezone.utc)
 
-    order.payment_method = payment_method
-    order.paid_amount = total_amount - discount
-    order.status = "closed"
-    order.closed_at = datetime.now(timezone.utc)
+    table = await db.get(Table, order.table_id)
     if table is not None:
         table.status = "idle"
 

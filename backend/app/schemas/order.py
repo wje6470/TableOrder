@@ -11,7 +11,7 @@ class OrderOpenRequest(BaseModel):
 
 class OrderItemIn(BaseModel):
     product_id: uuid.UUID
-    quantity: int
+    quantity: int = Field(gt=0)
     note: str | None = Field(default=None, max_length=200)
     selected_option_ids: list[uuid.UUID] = []
 

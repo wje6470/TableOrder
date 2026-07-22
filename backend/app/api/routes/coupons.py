@@ -1,13 +1,14 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
-from sqlalchemy import extract, select
+from sqlalchemy import extract, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_customer, get_current_store
-from app.core.config import settings
+from app.core.config import BUSINESS_TIMEZONE, settings
 from app.db.session import get_db
 from app.models.coupon import Coupon
 from app.models.coupon_rule import CouponRule
@@ -26,6 +27,8 @@ router = APIRouter(prefix="/coupons", tags=["coupons"])
 
 
 def _validate_discount(discount_type: str, discount_value: Decimal) -> None:
+    if discount_value <= Decimal("0"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="折扣值必須大於 0")
     if discount_type == "percentage" and discount_value > Decimal("100"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="百分比折扣不可超過 100")
 
@@ -37,9 +40,12 @@ async def _distribute_rule(db: AsyncSession, rule: CouponRule) -> int:
     一般方案：所有還沒領過這個方案的顧客（新註冊的顧客之後跑到也會補發）。
     """
     if rule.rule_type == "birthday":
-        today = datetime.now(timezone.utc)
+        # 用台灣時間判斷「本月」「今年」——資料庫欄位存的是 UTC，月份／年份交界時
+        # 直接用 UTC 的月份／年份比較會跟台灣的日曆差到最多 8 小時，跨月時可能誤判。
+        today = datetime.now(BUSINESS_TIMEZONE)
+        created_at_local = func.timezone("Asia/Taipei", Coupon.created_at)
         already_issued = select(Coupon.customer_id).where(
-            Coupon.rule_id == rule.id, extract("year", Coupon.created_at) == today.year
+            Coupon.rule_id == rule.id, extract("year", created_at_local) == today.year
         )
         eligible = await db.scalars(
             select(Customer.id).where(
@@ -85,7 +91,11 @@ async def create_coupon_rule(payload: CouponRuleIn, db: AsyncSession = Depends(g
 
     rule = CouponRule(**payload.model_dump())
     db.add(rule)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="優惠券方案資料不合法") from None
     await db.refresh(rule)
 
     if rule.is_enabled:

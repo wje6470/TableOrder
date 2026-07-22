@@ -36,7 +36,11 @@ async def list_products(category_id: uuid.UUID | None = None, db: AsyncSession =
 async def create_product(payload: ProductCreate, db: AsyncSession = Depends(get_db)):
     product = Product(**payload.model_dump())
     db.add(product)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="分類不存在或商品資料不合法") from None
     await db.refresh(product)
     return product
 
@@ -48,7 +52,11 @@ async def update_product(product_id: uuid.UUID, payload: ProductUpdate, db: Asyn
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="商品不存在")
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(product, field, value)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="分類不存在或商品資料不合法") from None
     await db.refresh(product)
     return product
 

@@ -1,10 +1,11 @@
 import uuid
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time
 from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import BUSINESS_TIMEZONE
 from app.models.category import Category
 from app.models.coupon import Coupon
 from app.models.order import Order
@@ -21,17 +22,20 @@ from app.schemas.report import (
     RevenuePoint,
 )
 
+# Order.closed_at 用台灣時間的日曆日分桶／篩選，不是資料庫預設的 UTC——見 BUSINESS_TIMEZONE。
+_closed_at_local = func.timezone("Asia/Taipei", Order.closed_at)
+
 
 def _range_bounds(start_date: date, end_date: date) -> tuple[datetime, datetime]:
-    start = datetime.combine(start_date, time.min, tzinfo=timezone.utc)
-    end = datetime.combine(end_date, time.max, tzinfo=timezone.utc)
+    start = datetime.combine(start_date, time.min, tzinfo=BUSINESS_TIMEZONE)
+    end = datetime.combine(end_date, time.max, tzinfo=BUSINESS_TIMEZONE)
     return start, end
 
 
 async def get_revenue(db: AsyncSession, start_date: date, end_date: date, period: str) -> list[RevenuePoint]:
     start, end = _range_bounds(start_date, end_date)
     bucket_format = "YYYY-MM-DD" if period == "daily" else "YYYY-MM"
-    bucket = func.to_char(Order.closed_at, bucket_format).label("bucket")
+    bucket = func.to_char(_closed_at_local, bucket_format).label("bucket")
 
     query = (
         select(bucket, func.sum(Order.paid_amount), func.count(Order.id))
@@ -116,7 +120,7 @@ async def get_product_revenue_trend(
 ) -> list[ProductRevenuePoint]:
     start, end = _range_bounds(start_date, end_date)
     bucket_format = "YYYY-MM-DD" if period == "daily" else "YYYY-MM"
-    bucket = func.to_char(Order.closed_at, bucket_format).label("bucket")
+    bucket = func.to_char(_closed_at_local, bucket_format).label("bucket")
 
     query = (
         select(bucket, func.sum(OrderItem.quantity), func.sum(OrderItem.subtotal))

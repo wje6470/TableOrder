@@ -1,4 +1,10 @@
+from zoneinfo import ZoneInfo
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# 單店家開在台灣，「今天」「本月」這類日期計算都要以台灣時間為準，不能用資料庫／伺服器
+# 預設的 UTC——否則半夜的訂單（台灣時間已經是隔天）在報表跟優惠券到期判斷上會被誤判成前一天。
+BUSINESS_TIMEZONE = ZoneInfo("Asia/Taipei")
 
 
 class Settings(BaseSettings):
