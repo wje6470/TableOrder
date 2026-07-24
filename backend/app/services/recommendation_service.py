@@ -36,7 +36,7 @@ async def _get_latest_closed_order_at(db: AsyncSession, customer_id: uuid.UUID) 
 
 
 async def get_popular_products(db: AsyncSession, limit: int = MAX_RECOMMENDATIONS) -> list[Product]:
-    """沒有點餐紀錄的新顧客、或 AI 呼叫失敗時的候補清單：全店賣最好的上架中商品。"""
+    """全店賣最好的上架中商品（依已結帳訂單的點餐數量排序）。"""
     quantity_sum = func.sum(OrderItem.quantity)
     query = (
         select(Product)
@@ -57,17 +57,37 @@ def to_popular_out(products: list[Product]) -> list[RecommendedProductOut]:
     ]
 
 
+async def get_fallback_products(db: AsyncSession, limit: int = MAX_RECOMMENDATIONS) -> list[Product]:
+    """AI 沒有適合的推薦結果時的候補清單：優先用全店賣最好的上架商品；
+    如果店裡還沒有任何已結帳銷售紀錄（賣最好的清單是空的），改用目前上架中單價最高的商品，
+    確保只要菜單上還有商品，就一定推得出東西。
+    """
+    popular = await get_popular_products(db, limit)
+    if popular:
+        return popular
+    query = (
+        select(Product).where(Product.is_available.is_(True)).order_by(Product.price.desc()).limit(limit)
+    )
+    return list((await db.scalars(query)).all())
+
+
 async def get_recommendations_for_customer(db: AsyncSession, customer: Customer) -> list[RecommendedProductOut]:
     history = await _get_order_history_summary(db, customer.id)
     if not history:
-        return to_popular_out(await get_popular_products(db))
+        return to_popular_out(await get_fallback_products(db))
 
     latest_order_at = await _get_latest_closed_order_at(db, customer.id)
     cache = await db.get(CustomerRecommendation, customer.id)
     needs_refresh = cache is None or (latest_order_at is not None and latest_order_at > cache.generated_at)
 
     if not needs_refresh:
-        products = list((await db.scalars(select(Product).where(Product.id.in_(cache.product_ids)))).all())
+        products = list(
+            (
+                await db.scalars(
+                    select(Product).where(Product.id.in_(cache.product_ids), Product.is_available.is_(True))
+                )
+            ).all()
+        )
         if products:
             by_id = {p.id: p for p in products}
             ordered = [by_id[pid] for pid in cache.product_ids if pid in by_id]
@@ -78,7 +98,7 @@ async def get_recommendations_for_customer(db: AsyncSession, customer: Customer)
                 )
                 for p in ordered
             ]
-        # 快取裡的商品都已經下架或被刪除了，視為需要重新產生。
+        # 快取裡的商品全部已下架或被刪除了，視為需要重新產生。
 
     menu = list((await db.scalars(select(Product).where(Product.is_available.is_(True)))).all())
     menu_by_id = {p.id: p for p in menu}
@@ -98,7 +118,7 @@ async def get_recommendations_for_customer(db: AsyncSession, customer: Customer)
     picks = parse_product_picks(await generate_json(prompt), menu_by_id, MAX_RECOMMENDATIONS)
 
     if not picks:
-        return to_popular_out(await get_popular_products(db))
+        return to_popular_out(await get_fallback_products(db))
 
     product_ids = [pid for pid, _ in picks]
     reasons = [reason or "" for _, reason in picks]

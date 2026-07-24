@@ -6,7 +6,7 @@ from app.schemas.mood_quiz import MoodQuizAnswer, MoodQuizQuestion
 from app.schemas.product import ProductOut
 from app.schemas.recommendation import RecommendedProductOut
 from app.services.gemini_client import generate_json, parse_product_picks
-from app.services.recommendation_service import get_popular_products, to_popular_out
+from app.services.recommendation_service import get_fallback_products, to_popular_out
 
 MAX_QUIZ_RECOMMENDATIONS = 3
 
@@ -55,7 +55,7 @@ async def get_quiz_recommendations(
     menu_by_id = {p.id: p for p in menu}
 
     if not answers or not menu:
-        return to_popular_out(await get_popular_products(db))
+        return to_popular_out(await get_fallback_products(db))
 
     answer_lines = "\n".join(f"- {a.question} {a.answer}" for a in answers)
     menu_lines = "\n".join(f"- id={p.id} 名稱={p.name} 價格={p.price}" for p in menu)
@@ -72,7 +72,7 @@ async def get_quiz_recommendations(
     picks = parse_product_picks(await generate_json(prompt), menu_by_id, MAX_QUIZ_RECOMMENDATIONS)
 
     if not picks:
-        return to_popular_out(await get_popular_products(db))
+        return to_popular_out(await get_fallback_products(db))
 
     return [
         RecommendedProductOut(product=ProductOut.model_validate(menu_by_id[pid]), reason=reason or None, source="quiz")

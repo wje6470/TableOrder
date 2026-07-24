@@ -1,0 +1,108 @@
+﻿.venv\Scripts\python.exe : INFO:     Will watch for changes in these directories: ['C:\\Users\\user\\Desktop\\TableOrde
+r\\backend']
+At line:3 char:1
++ .venv\Scripts\python.exe -m uvicorn app.main:app --port 8000 --reload ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (INFO:     Will ...rder\\backend']:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [4876] using WatchFiles
+Python-dotenv could not parse statement starting at line 27
+Python-dotenv could not parse statement starting at line 28
+INFO:     Started server process [3660]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:52209 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52211 - "POST /auth/customer/register HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52495 - "GET /customers/me/recommendations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49199 - "GET /customers/me/recommendations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49201 - "GET /customers/me/recommendations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52463 - "OPTIONS /auth/store/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52463 - "POST /auth/store/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52463 - "OPTIONS /orders/open HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60237 - "OPTIONS /tables HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60237 - "GET /orders/open HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60237 - "GET /orders/open HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52463 - "GET /tables HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60237 - "GET /tables HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60237 - "OPTIONS /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52463 - "OPTIONS /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63689 - "OPTIONS /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60237 - "OPTIONS /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63689 - "GET /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52463 - "GET /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60237 - "GET /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52463 - "GET /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59719 - "OPTIONS /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59719 - "POST /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59719 - "GET /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63911 - "GET /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56071 - "POST /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56071 - "GET /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62769 - "GET /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62621 - "OPTIONS /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62621 - "POST /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62621 - "OPTIONS /products/52e292a9-ae69-4e81-b84f-7ff27efeafb4/image HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62621 - "POST /products/52e292a9-ae69-4e81-b84f-7ff27efeafb4/image HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58022 - "GET /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62621 - "GET /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54870 - "OPTIONS /products/52e292a9-ae69-4e81-b84f-7ff27efeafb4/option-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54870 - "POST /products/52e292a9-ae69-4e81-b84f-7ff27efeafb4/option-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54870 - "OPTIONS /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54870 - "GET /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62090 - "GET /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54853 - "POST /products/52e292a9-ae69-4e81-b84f-7ff27efeafb4/option-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54853 - "GET /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64462 - "GET /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52388 - "POST /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52388 - "OPTIONS /products/93f0cb80-cf1d-4ce0-a6a0-93c5f766dd98/image HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52388 - "POST /products/93f0cb80-cf1d-4ce0-a6a0-93c5f766dd98/image HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62480 - "GET /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52388 - "GET /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65413 - "OPTIONS /products/93f0cb80-cf1d-4ce0-a6a0-93c5f766dd98/option-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65413 - "POST /products/93f0cb80-cf1d-4ce0-a6a0-93c5f766dd98/option-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65413 - "GET /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49792 - "GET /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64400 - "POST /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64400 - "OPTIONS /products/12d610bb-a969-4b60-baf2-638b22b39490/image HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64400 - "POST /products/12d610bb-a969-4b60-baf2-638b22b39490/image HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63614 - "GET /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64400 - "GET /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53298 - "OPTIONS /products/12d610bb-a969-4b60-baf2-638b22b39490/option-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53298 - "POST /products/12d610bb-a969-4b60-baf2-638b22b39490/option-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53298 - "GET /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60238 - "GET /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51802 - "POST /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51802 - "OPTIONS /products/595207de-d4fa-4025-b852-9c15220e17c8/image HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51802 - "POST /products/595207de-d4fa-4025-b852-9c15220e17c8/image HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61221 - "GET /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51802 - "GET /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58163 - "OPTIONS /products/595207de-d4fa-4025-b852-9c15220e17c8/option-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58163 - "POST /products/595207de-d4fa-4025-b852-9c15220e17c8/option-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58163 - "GET /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58821 - "GET /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54601 - "POST /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54601 - "OPTIONS /products/86bf4098-72d2-4681-914e-945cbad3d031/image HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54601 - "POST /products/86bf4098-72d2-4681-914e-945cbad3d031/image HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57939 - "GET /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54601 - "GET /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51316 - "OPTIONS /products/86bf4098-72d2-4681-914e-945cbad3d031/option-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51316 - "POST /products/86bf4098-72d2-4681-914e-945cbad3d031/option-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51316 - "GET /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55209 - "GET /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62441 - "POST /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62441 - "OPTIONS /products/ecba9215-c371-40e8-89fb-b011a3c2d709/image HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62441 - "POST /products/ecba9215-c371-40e8-89fb-b011a3c2d709/image HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62441 - "GET /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57532 - "GET /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61037 - "OPTIONS /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61037 - "POST /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61037 - "OPTIONS /products/dbc0cf56-033f-4379-8fe9-6cea76988aa1/image HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61037 - "POST /products/dbc0cf56-033f-4379-8fe9-6cea76988aa1/image HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61727 - "GET /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61037 - "GET /products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52873 - "OPTIONS /products/dbc0cf56-033f-4379-8fe9-6cea76988aa1/option-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52873 - "POST /products/dbc0cf56-033f-4379-8fe9-6cea76988aa1/option-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52873 - "GET /categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49737 - "GET /products HTTP/1.1" 200 OK
