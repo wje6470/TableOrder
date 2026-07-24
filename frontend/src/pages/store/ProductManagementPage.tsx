@@ -140,7 +140,7 @@ export default function ProductManagementPage() {
           />
           <button className={compactButtonClass}>新增</button>
         </form>
-        <ul className="space-y-2">
+        <ul className="max-h-[32rem] space-y-2 overflow-y-auto pr-1">
           {categories.map((c) => (
             <li
               key={c.id}
@@ -198,7 +198,7 @@ export default function ProductManagementPage() {
           <button className={`sm:col-span-4 ${primaryButtonClass}`}>新增商品</button>
         </form>
 
-        <div className="space-y-2">
+        <div className="max-h-[32rem] space-y-2 overflow-y-auto pr-1">
           {products.map((product) => (
             <div
               key={product.id}

@@ -7,3 +7,5 @@
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: use --host to expose
+上午10:20:05 [vite] hmr update /src/pages/store/ProductManagementPage.tsx, /src/index.css
+上午10:20:11 [vite] hmr update /src/pages/store/ProductManagementPage.tsx, /src/index.css
